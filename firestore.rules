@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Event access code, stored once by the commissioner via the Firebase console. ----
+    // Example document to create by hand: config/access  ->  { code: "whatever-you-picked" }
+    // This document is intentionally NOT client-writable — only readable, so rules below can
+    // check a write's `code` field against it. Change it from the console if it ever leaks.
+    match /config/access {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    function validCode() {
+      return request.resource.data.code == get(/databases/$(database)/documents/config/access).data.code;
+    }
+
+    // ---- Scoring data: anyone can read live scores (so a browser without the code can still
+    // watch the leaderboard). Writes require the event's access code and a signed-in device.
+    // The app writes one player's field at a time (see README), which is what actually stops
+    // one golfer's update from overwriting another's — these rules are the access gate, not
+    // the conflict protection; that lives in the app's field-level sync logic.
+    match /match/{matchId} {
+      allow read: if true;
+      allow create, update: if request.auth != null && validCode();
+      allow delete: if false;
+    }
+
+    match /meta/{docId} {
+      allow read: if true;
+      allow create, update: if request.auth != null && validCode();
+      allow delete: if false;
+    }
+
+    // ---- Photos: lower stakes, left open to any signed-in device so uploads never get stuck
+    // behind the event code prompt. Tighten this the same way as above if you want it locked too.
+    match /playerphotos/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    match /photos/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Everything else: closed by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
