@@ -267,7 +267,10 @@ S.matches.forEach(m=>m.s.forEach((v,k)=>{if(!v)return;n++;const a=m.pv[k];
 if(v.w=='H'){t[0]+=a/2;t[1]+=a/2;m.l.forEach((l,i)=>l.forEach(x=>{if(pp[i][x]!=null)pp[i][x]+=a/2}))}
 else{const i=v.w=='A'?0:1;t[i]+=a;m.l[i].forEach(x=>{if(pp[i][x]!=null)pp[i][x]+=a})}}));return{t,pp,n}}
 const LB={o:'More',a:'Admin',r:'Rules',s:'Scoreboard',m:'Matches',h:'History',t:'Teams'};
-function render(){save();const c=calc();
+function render(){try{render0()}catch(e){rerr(e)}}
+function rerr(e){try{console.error(e);lg('ERROR '+tab+(MS?'/'+MS:'')+': '+String(e&&e.message||e).slice(0,120));LV=null;MS=null;PF=null;
+$('#main').innerHTML=`<div class="card"><h2>Something went wrong</h2><p class="mu">Your scores are saved on this phone and keep syncing. Tap Reload to carry on.</p><button class="op go" onclick="location.reload()">Reload</button><button class="add" style="margin-top:8px" onclick="tab='s';render()">Go to Scoreboard</button></div>`}catch(x){}}
+function render0(){save();const c=calc();
 $('#lbl').textContent=LB[tab=='o'&&MS?MS:tab];$('#ev').textContent=S.event;
 document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==tab));
 $('#main').innerHTML=({a:admin,r:rules,s:()=>stand(c),m:()=>LV?liveView():matches(),h:history,t:players,o:more})[tab]();if(LV&&tab=='m')setTimeout(ctr,0)}
@@ -994,6 +997,13 @@ a[h]=a[h]===n?null:n;sync(m,LV.mi);if(a[h]!=null)step(1);else render()}
 function clr1(){const m=S.matches[LV.mi],a=(S.sc[m.d]||{})[LV.k];if(a){a[LV.h]=null;sync(m,LV.mi)}render()}
 function ctr(){try{const c=document.querySelector('.sgw'),s=document.querySelector('td.sel');if(c&&s&&s.offsetLeft!=null)c.scrollLeft=s.offsetLeft-c.clientWidth/2+s.offsetWidth/2}catch(e){}}
 let DB=null,SY='local',AUTH_OK=false;const LP={},LPV={},TM={},BZ={};
+// Reliability helpers. nextV: write version = one more than the highest version seen for that field (falls back to the clock), plus a per-phone fraction so two phones can never tie. This keeps sync correct even when phone clocks disagree.
+const DEVF=(Math.floor(Math.random()*998)+1)/1000,WROTE={};let HOLD=0,RT=0,RRT=0,RRS=0,LASTTAP=0;
+function nextV(k){return Math.floor(Math.max(Date.now(),(LPV[k]||0)+1))+DEVF}
+function pristine(i,val){try{const D=mk().matches[i];return !!D&&val===JSON.stringify({d:D.d,f:D.f,n:D.n,pv:D.pv,l:D.l,s:D.s,final:null})}catch(e){return false}} // an untouched match: nothing worth writing to the database
+// rr: redraw after a remote update. Batches bursts into one redraw and waits until the user has stopped tapping, so an incoming score never eats a tap.
+try{document.addEventListener&&document.addEventListener('pointerdown',()=>{LASTTAP=Date.now()},true)}catch(e){}
+function rr(){if(RRT)return;RRS=Date.now();RRT=setTimeout(function f(){if(Date.now()-LASTTAP<700&&Date.now()-RRS<3000){RRT=setTimeout(f,250);return}RRT=0;render()},(tab=='o'&&MS=='pair')?3000:250)}
 function setSy(s){SY=s;const e=$('#sy');if(e){e.textContent=s=='live'?'\u25cf Live':s=='ro'?'View only':s=='off'?'\u25cf Offline (saved on this phone)':s=='connecting'?'Connecting\u2026':'Local';e.className='sy '+s}}
 // ---- Field-level document shape: each match doc holds a small "struct" (lineup/format/segment results)
 // plus one score field and one tee field PER PLAYER, each with its own version stamp. Two golfers
@@ -1015,21 +1025,25 @@ const m=S.matches[i];if(!m)return;const o=S.sc[m.d]||(S.sc[m.d]={}),t=S.tees[m.d
 m.l.forEach((l,ti)=>l.forEach(pi=>{delete o[ti+'_'+pi];delete t[ti+'_'+pi]}));Object.assign(m,{f:p.f,n:p.n,pv:p.pv,s:p.s,l:p.l});Object.assign(o,p.sc);Object.assign(t,p.te)}
 
 // ---- Outbound: scan for anything locally changed since last confirmed sync, debounce, flush per field.
-function pa(){if(!DB||SY=='ro')return;
+function pa(){if(!DB||SY=='ro'||Date.now()<HOLD)return;
 if(LP['meta.meta']===undefined)return; // haven't heard from the server about the roster/settings yet — never push a guess over it
 const mk=jm('meta');if(mk!==LP['meta.meta']&&!TM.meta)TM.meta=setTimeout(()=>fl('meta','meta'),600);
 S.matches.forEach((m,i)=>{fkeys(i).forEach(field=>{const key='m'+i+'.'+field,val=fval(i,field);
 if(LP[key]===undefined&&val==='null')return; // never synced this field and nothing local to say either — don't write a placeholder that could shadow another device's real data, and don't block their update from landing
+if(field=='struct'&&LP[key]===null&&pristine(i,val))return; // don't let every phone write a blank starting record on first open
 if(LP[key]===undefined&&field=='struct')return; // never confirmed this match's lineup/format from the server — don't push our blank starting guess over someone else's real data
 if(val!==LP[key]&&!TM[key])TM[key]=setTimeout(()=>fl('m'+i,field),field=='struct'?500:900)})})}
 async function fl(docId,field){const key=docId+'.'+field;delete TM[key];
 if(BZ[key]){TM[key]=setTimeout(()=>fl(docId,field),400);return}BZ[key]=1;
-const val=field=='meta'?jm('meta'):fval(+docId.slice(1),field),v=Date.now();
+const val=field=='meta'?jm('meta'):fval(+docId.slice(1),field),v=nextV(key);
 try{
   if(field=='meta')await DB.doc('meta/main').set({j:val,v,code:EVENT_CODE},{merge:true});
   else await DB.doc('match/'+docId).set({[field]:val,[field+'_v']:v,code:EVENT_CODE},{merge:true});
-  LP[key]=val;LPV[key]=v;setSy('live')
-}catch(e){setSy(e&&e.code=='permission-denied'?'ro':(navigator.onLine===false?'off':'ro'))}
+  LP[key]=val;LPV[key]=v;RT=0;HOLD=0;if(docId!='meta')WROTE[+docId.slice(1)]=1;setSy('live')
+}catch(e){
+  if(e&&e.code=='permission-denied')setSy('ro'); // wrong/missing access code: stays view-only until the code is changed
+  else{setSy(navigator.onLine===false?'off':'connecting');if(Date.now()>=HOLD){RT=Math.min(15000,(RT||750)*2);HOLD=Date.now()+RT;setTimeout(pa,RT+50)}} // any other error is temporary: keep the edit, retry with back-off (one step per round, not per failed write)
+}
 delete BZ[key];pa()}
 
 // ---- Inbound: apply a remote field, skipping anything stale (older than what we already have)
@@ -1042,7 +1056,8 @@ if(TM[key]||BZ[key])return false; // we have an unsent local edit for this exact
 try{
   if(field=='meta'){const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return false;
     const p=JSON.parse(val);S.event=p.event;S.teams=p.teams;S.rules=p.rules;fixRoster()}
-  else fapply(+docId.slice(1),field,val);
+  else{const mi=+docId.slice(1);fapply(mi,field,val);const m=S.matches[mi];
+    if(m&&WROTE[mi]&&/^(sc|te)_/.test(field))seg(m).forEach((x,k)=>{const c=m.s[k];if(x.w&&(!c||(c.auto&&c.w!=x.w)))m.s[k]={w:x.w,auto:1}})} // only phones that have scored this match; only ever sets a decided result
   LP[key]=val;if(v!=null)LPV[key]=v;return true
 }catch(e){return false}}
 
@@ -1068,22 +1083,24 @@ try{
 }catch(e){DB=null}
 if(!DB){setSy('local');return}
 setSy('connecting');
-window.addEventListener('online',()=>{if(SY=='off')setSy('live')});
+window.addEventListener('online',()=>{HOLD=0;RT=0;if(SY=='off')setSy('live');pa()});
 window.addEventListener('offline',()=>setSy('off'));
 let f1=1,f2=1;const seen={};
-DB.collection('match').onSnapshot(sn=>{let c=false;
+const rt={},bad=(n,fn)=>e=>{setSy(e&&e.code=='permission-denied'?'ro':(navigator.onLine===false?'off':'connecting'));rt[n]=Math.min(15000,(rt[n]||750)*2);setTimeout(fn,rt[n])}; // a dead listener re-subscribes itself instead of leaving the phone stuck
+const subMatch=()=>DB.collection('match').onSnapshot(sn=>{rt.match=0;let c=false;
 setSy('live'); // any delivery at all — cache or server — is proof this listener is alive and working
 sn.docs.forEach(d=>{seen[d.id]=1;const data=d.data();
 Object.keys(data).forEach(f=>{if(f.endsWith('_v'))return;const v=data[f+'_v'];if(apField(d.id,f,data[f],v))c=true})});
 if(f1&&!sn.metadata.fromCache){f1=0;S.matches.forEach((m,i)=>{const id='m'+i;if(!seen[id])fkeys(i).forEach(field=>{const key=id+'.'+field;if(LP[key]===undefined)LP[key]=null})})}
-if(c)render();else if(!sn.metadata.fromCache)pa()},()=>setSy(navigator.onLine===false?'off':'ro'));
-DB.doc('meta/main').onSnapshot(d=>{setSy('live');
+if(c)rr();else if(!sn.metadata.fromCache)pa()},bad('match',subMatch));
+const subMeta=()=>DB.doc('meta/main').onSnapshot(d=>{rt.meta=0;setSy('live');
 if(!d.exists){if(f2&&!d.metadata.fromCache){f2=0;if(LP['meta.meta']===undefined)LP['meta.meta']=null}return}
-const c=apField('meta','meta',d.data().j,d.data().v);if(!d.metadata.fromCache)f2=0;if(c)render();else if(!d.metadata.fromCache)pa()},()=>setSy(navigator.onLine===false?'off':'ro'));
-DB.collection('playerphotos').onSnapshot(sn=>{let ch=false;sn.docs.forEach(d=>{const data=d.data();if(data&&data.img&&PPICS[d.id]!==data.img){PPICS[d.id]=data.img;ch=true}});if(ch){savePPics();render()}},()=>{});
+const c=apField('meta','meta',d.data().j,d.data().v);if(!d.metadata.fromCache)f2=0;if(c)rr();else if(!d.metadata.fromCache)pa()},bad('meta',subMeta));
+subMatch();subMeta();
+DB.collection('playerphotos').onSnapshot(sn=>{let ch=false;sn.docs.forEach(d=>{const data=d.data();if(data&&data.img&&PPICS[d.id]!==data.img){PPICS[d.id]=data.img;ch=true}});if(ch){savePPics();rr()}},()=>{});
 pa()}
 function more(){if(MS)return `<button class="add" style="margin-bottom:12px" onclick="MS=null;render()">← More</button>`+(MS=='r'?rules():MS=='th'?themePage():MS=='i'?installPage():MS=='ph'?photosPage():MS=='pw'?rbPage():MS=='pwd'?rbDetail(PWD.ti,PWD.pi):MS=='pair'?rbPairPage():MS=='lb'?leaderboardPage():MS=='pay'?payoutsPage():admin());
-return `<div class="card" style="padding:4px 14px">`+[['lb','Leaderboard','Net scores across every player'],['pw','Power rankings','All 14 players ranked 1 to 14'],['pay','Payouts','Who wins the side-bet pots'],['r','Rules','Format, scoring and awards'],['a','Admin','Event name, Nassau points and reset'],['th','Appearance','Light, dark or match your device'],['i','Install app','Add to your home screen'],['cc','Change access code','Switch between edit and view-only'],['ph','Photo album','Trip photos, one album per year']].map(([k,t,d])=>`<button class="mi" onclick="${k=='cc'?'changeCode()':`MS='${k}';render();scrollTo(0,0)`}"><span><b>${t}</b><small>${d}</small></span><i>›</i></button>`).join('')+`</div>`}
+return `<div class="card" style="padding:4px 14px">`+[['lb','Leaderboard','Net scores across every player'],['pw','Power rankings','All 14 players ranked 1 to 14'],['pay','Payouts','Who wins the side-bet pots'],['r','Rules','Format, scoring and awards'],['a','Admin','Event name, Nassau points and reset'],['th','Appearance','Light, dark or match your device'],['i','Install app','Add to your home screen'],['cc','Change access code','Switch between edit and view-only'],['ph','Photo album','Trip photos, one album per year']].map(([k,t,d])=>`<button class="mi" onclick="${k=='cc'?'changeCode()':`MS='${k}';${k=='ph'?'pSub(PY);':''}render();scrollTo(0,0)`}"><span><b>${t}</b><small>${d}</small></span><i>›</i></button>`).join('')+`</div>`}
 let INSTALLP=null,INSTALLED=false;
 try{
  if(typeof window!=='undefined'){
@@ -1150,8 +1167,8 @@ if(PERR)x+=`<p class="mu" style="color:var(--red)">${esc(PERR)}</p>`;
 x+=PDOCS.length?`<div class="pgrid">${PDOCS.map(p=>`<button class="pthumb" onclick="openPhoto('${p.id}')"><img src="${p.img}" loading="lazy" alt=""></button>`).join('')}</div>`:`<p class="mu">No photos in the ${PY} album yet.</p>`;
 return x}
 
+try{window.addEventListener('error',ev=>{try{lg('ERROR '+String(ev&&ev.message||'').slice(0,120))}catch(x){}});window.addEventListener('unhandledrejection',ev=>{try{lg('ERROR '+String(ev&&ev.reason&&ev.reason.message||ev.reason||'').slice(0,120))}catch(x){}})}catch(e){}
 render();
 initDb();
-pSub(PY);
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{})})}
 </script></body></html>

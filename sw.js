@@ -8,7 +8,7 @@
 // sw.js itself changed and re-runs install — this is what actually pulls in a fresh shell.
 // Forgetting to bump this is exactly why an installed home-screen icon can get stuck on an old
 // version even after the site itself has been updated.
-const CACHE = 'rbc-shell-v3';
+const CACHE = 'rbc-shell-v4';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
