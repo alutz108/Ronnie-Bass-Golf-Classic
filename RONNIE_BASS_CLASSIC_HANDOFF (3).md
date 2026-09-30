@@ -39,7 +39,7 @@ It does:
 |---|---|
 | `index.html` | The entire app: HTML shell, `<style>`, and one `<script>`. Very large because logos, team logos (2024/25/26/27 variants), and default player headshots are embedded as base64 data URLs. |
 | `manifest.json` | PWA manifest: name "Ronnie Bass Classic", short_name "Ronnie Bass", `start_url: ./index.html`, `scope: ./`, `display: standalone`, background/theme `#0B3350`, icons `icon-192.png` / `icon-512.png` (any + maskable). |
-| `sw.js` | Service worker, **network-first** with cached fallback when offline. `const CACHE = 'rbc-shell-v7'`; precaches `./`, `./index.html`, `./manifest.json`, `./icon-192.png`, `./icon-512.png`. Ignores cross-origin requests (Firebase). **Registered** at the end of `index.html`. **Bump `CACHE` on every release.** |
+| `sw.js` | Service worker, **network-first** with cached fallback when offline. `const CACHE = 'rbc-shell-v8'`; precaches `./`, `./index.html`, `./manifest.json`, `./icon-192.png`, `./icon-512.png`. Ignores cross-origin requests (Firebase). **Registered** at the end of `index.html`. **Bump `CACHE` on every release.** |
 | `firestore.rules` | Firestore security rules to paste into the Firebase console (reference copy; the app doesn't load it). |
 | `README.md` | Firebase setup guide (project, Firestore, anonymous auth, rules, `config/access` code doc, pasting `FIREBASE_CONFIG`). |
 | `icon-192.png`, `icon-512.png` | Home-screen icons. Referenced by manifest; were not in project knowledge, assumed to be in the GitHub repo (verify). |
@@ -100,7 +100,7 @@ External requests: Google Fonts (Barlow 500/700, Barlow Condensed 700/800) and t
 4. Note: "See every match, past and upcoming, on the Matches tab."
 5. Leaderboard block (`lbHtml()`) with Round dropdown (All / Friday / Saturday / Sunday). All = Net, +/-, Holes. Per-day = F9, B9, Tot, +/-, Thru.
 6. **Individual Awards** (auto from 2027 points): **Sunshine** (most points on leading team), **Gerry Bertier** (most points on trailing team), **Alan Bosley** (fewest points on trailing team).
-7. **Stats & Side Games** (`sideAwards(curDay)`): Big Dog, Just Go Home, Birdie Machine, Mr. Consistent, Hot Start, The Closer, Hacker (see §14 naming note).
+7. **Stats & Side Games** (`sideAwards(curDay)`): The Alpha, The Beta, Birdie Machine, Mr. Consistent, Hot Start, The Closer, Hacker.
 - **No Nassau boxes/labels on Scoreboard. No Upcoming/Finished sections.**
 
 ### Matches tab (`matches()`)
@@ -324,7 +324,7 @@ No secret keys, no custom backend, no analytics. (Firebase web config is public 
 
 **Net stats (leaderboard/awards/payouts):** `roundNet(day,ti,pi)` uses each player's **full Course Handicap** (not match-relative strokes); a day with no course loaded scores gross as net. `dayPlayerStats`, `bagStats`, `bagStatsDay`, `dayBoard`, `topBy`.
 
-**Side-game awards (`sideAwards`)** — code names: **Big Dog** (lowest net), **Just Go Home** (highest net), **Birdie Machine** (most gross birdies), **Mr. Consistent** (longest net-par streak), **Hot Start** (best net first 5 holes), **The Closer** (best net last 5 holes), **Hacker** (most net bogey-or-worse). Ties shown as "· tied".
+**Side-game awards (`sideAwards`)** — code names: **The Alpha** (lowest net; renamed from "Big Dog"), **The Beta** (highest net; renamed from "Just Go Home"), **Birdie Machine** (most gross birdies), **Mr. Consistent** (longest net-par streak), **Hot Start** (best net first 5 holes), **The Closer** (best net last 5 holes), **Hacker** (most net bogey-or-worse). Ties shown as "· tied".
 
 **Payouts (`payoutsPage`)** — 2027 amounts (from `S.pay`): Fri & Sat **Front 9 $21, Back 9 $21, Overall 18 $28** (lowest individual net for that segment; pot split on ties; Front needs thru ≥9, Back/Overall need thru 18); **Best Ball $70 each** to each player on the single pairing/trio with the lowest net best-ball total that day from any match (ties split); **no Sunday payouts**; **Ryder Cup Champion $340 each** to the whole winning roster once all matches are finished (tie → both rosters split). Shows "Total payouts per player". Stores ledger in `PAYL` (`pay27()` calls `payoutsPage()` just to compute it). **Do not show or mention buy-ins** (`S.pay.buyin` exists in data; leave it hidden).
 
@@ -348,8 +348,8 @@ No secret keys, no custom backend, no analytics. (Firebase web config is public 
 ## 14. Recently added (latest work, roughly newest first)
 - **Firebase live sync:** replaced the claude.ai-only DB with Firestore + anonymous auth, per-player field-level sync, offline cache, event access code (More → Change access code), `README.md`, `firestore.rules`.
 - **Match finalization:** "Submit final score" / "Edit this match anyway" (`m.final`); a match only counts as finished once finalized.
-- **Service worker:** registered; network-first (`rbc-shell-v7`). `<head>` fixed.
-- **More menu reordered** (Admin last); **Change access code moved into Admin**; **Rules page has an "Individual awards" section** (event awards Sunshine / Gerry Bertier / Alan Bosley, and round awards Big Dog, Just Go Home, Birdie Machine, Mr. Consistent, Hot Start, The Closer, Hacker). The awards text is static code in `rules()`, not part of the editable `S.rules`; if an award's logic changes, update it there.
+- **Service worker:** registered; network-first (`rbc-shell-v8`). `<head>` fixed.
+- **More menu reordered** (Admin last); **Change access code moved into Admin**; **Rules page has an "Individual awards" section** (event awards Sunshine / Gerry Bertier / Alan Bosley, and round awards The Alpha, The Beta, Birdie Machine, Mr. Consistent, Hot Start, The Closer, Hacker). The awards text is static code in `rules()`, not part of the editable `S.rules`; if an award's logic changes, update it there.
 - **Saturday tee times** on Matches cards (`TEET` constant: 10:10, 10:20, 10:30 & 10:40 AM).
 - **Payouts overhaul:** 2027 amounts ($21/$21/$28/$70 Best Ball each; $340 Ryder Cup each; no Sunday), amounts shown next to each label, ties split, corrected **Best Ball** rule (lowest net best-ball pairing of the day from any match), renamed overall pot to **"Ryder Cup Champion"**, **Total payouts per player** table, buy-ins removed from display.
 - **Scoreboard** now shows only the current day's "Points in play" (auto-detected); Upcoming/Finished sections removed.
@@ -361,7 +361,7 @@ No secret keys, no custom backend, no analytics. (Firebase web config is public 
 - WHS **Course Handicap** auto-calc, per-player tees, Bear Trap Sunday combos, one-match-per-day hard block, no pickup button, max double par + 2, reference-style stacked scorecard.
 
 **Notes vs code naming differences (confirm with owner before "fixing"):**
-- Notes say side award "**Alpha**"; code shows **"Big Dog"**.
+- ~~Notes say side award "Alpha"; code shows "Big Dog".~~ Resolved: the award is now **The Alpha**, and "Just Go Home" is now **The Beta**.
 - Notes say "**Strong Finish**"; code shows **"The Closer"**.
 - Notes say 2025/2026 awards "MVP / LVP / Wanna Bee"; the app uses **Sunshine / Gerry Bertier / Alan Bosley** everywhere (owner later asked for these names).
 - Notes say History uses the "Individ Records" sheet; code **computes** records from `RES` + 2027 matches.

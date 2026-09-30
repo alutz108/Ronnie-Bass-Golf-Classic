@@ -671,8 +671,8 @@ function sideAwards(day,title){const bs=bagStatsDay(day);if(!bs.length)return ''
 const pm=v=>v>0?'+'+v:v<0?String(v):'E';
 const card=(t,res,sub)=>`<div class="aw${res?' f':''}"><small>${t}</small><strong>${res?jnAv(res.rows):'—'}</strong><em>${res?sub(res):'No qualifying holes yet'}</em></div>`;
 let h=`<div class="sec">${title||'Stats &amp; Side Games'}</div><div class="ag">`;
-h+=card('Big Dog',topBy(bs,'totalNet','min'),r=>`${r.v} net (${pm(r.v-r.rows[0].totalPar)}) over ${r.rows[0].holesN} holes`);
-h+=card('Just Go Home',topBy(bs,'totalNet','max'),r=>`${r.v} net (${pm(r.v-r.rows[0].totalPar)}) over ${r.rows[0].holesN} holes`);
+h+=card('The Alpha',topBy(bs,'totalNet','min'),r=>`${r.v} net (${pm(r.v-r.rows[0].totalPar)}) over ${r.rows[0].holesN} holes`);
+h+=card('The Beta',topBy(bs,'totalNet','max'),r=>`${r.v} net (${pm(r.v-r.rows[0].totalPar)}) over ${r.rows[0].holesN} holes`);
 h+=card('Birdie Machine',topBy(bs,'birdies','max'),r=>`${r.v} gross birdie${r.v==1?'':'s'}${r.rows.length>1?' · tied':''}`);
 h+=card('Mr. Consistent',topBy(bs,'bestStreak','max'),r=>`${r.v} straight holes at net par${r.rows.length>1?' · tied':''}`);
 h+=card('Hot Start',topBy(bs,'bestStart','min'),r=>`First 5 holes: ${r.v} net (${pm(r.v-r.rows[0].bestStartPar)})${r.rows.length>1?' · tied':''}`);
@@ -799,7 +799,7 @@ return `<div class="card"><h2>Rules</h2><div class="rl">${esc(S.rules)}</div></d
 ${aw('Sunshine','most points won by a player on the leading team.')}${aw('Gerry Bertier','most points won by a player on the trailing team.')}${aw('Alan Bosley','fewest points won by a player on the trailing team.')}
 <div class="sec" style="margin:16px 0 8px">Round awards \u00b7 every day</div>
 <p class="mu">Awarded separately for Friday, Saturday and Sunday, using each player's net score (gross minus the strokes from their own course handicap). The Scoreboard shows the current day as it is played, and the day's awards are final once every match that day is submitted as final. Tied players share the award.</p>
-${aw('Big Dog','lowest net score for the round.')}${aw('Just Go Home','highest net score for the round.')}${aw('Birdie Machine','most birdies, counted on gross score (one under par; eagles do not count).')}${aw('Mr. Consistent','longest run of straight holes at net par.')}${aw('Hot Start','best net score over holes 1 to 5 (all five holes must be scored).')}${aw('The Closer','best net score over holes 14 to 18 (all five holes must be scored).')}${aw('Hacker','most holes at net bogey or worse.')}
+${aw('The Alpha','lowest net score for the round.')}${aw('The Beta','highest net score for the round.')}${aw('Birdie Machine','most birdies, counted on gross score (one under par; eagles do not count).')}${aw('Mr. Consistent','longest run of straight holes at net par.')}${aw('Hot Start','best net score over holes 1 to 5 (all five holes must be scored).')}${aw('The Closer','best net score over holes 14 to 18 (all five holes must be scored).')}${aw('Hacker','most holes at net bogey or worse.')}
 </div>`}
 function admin(){return `<div class="card"><h2>Event</h2><input class="in" value="${esc(S.event)}" oninput="S.event=this.value;$('#ev').textContent=this.value;save()"></div>
 <div class="card"><h2>Access code</h2><p class="mu">The edit code lets this phone score and change settings. Any other code is view-only.</p><button class="op go" onclick="changeCode()">Change access code</button></div>
