@@ -775,12 +775,13 @@ Object.values(S.sc).forEach(o=>{const n={};Object.keys(o).forEach(k=>{const[t,p]
 S.matches.forEach((m,i)=>sync(m,i));render()}
 function reset(b){if(!b.dataset.c){b.dataset.c=1;b.textContent='Tap again to clear every point and award';return}
 S.matches.forEach(m=>m.s=m.s.map(()=>null));S.awards={};S.sc={};lg('All scores reset');render()}
+const TEET={Saturday:[['10:10 AM'],['10:20 AM'],['10:30 AM','10:40 AM']]};
 function cur(){return DAYS.map(d=>{const ms=S.matches.map((m,mi)=>[m,mi]).filter(x=>x[0].d==d);let a=0,b=0;
 ms.forEach(([m])=>m.s.forEach((v,k)=>{if(!v)return;const p=m.pv[k];if(v.w=='H'){a+=p/2;b+=p/2}else if(v.w=='A')a+=p;else b+=p}));
 const picker=d=='Sunday'?`<div class="card" style="padding:10px 14px"><label class="lbl" style="color:var(--muted);margin-bottom:6px" for="sc">Sunday course</label><select class="in" id="sc" onchange="S.crs.Sunday=this.value;save();render()"><option value=""${S.crs.Sunday?'':' selected'}>Not yet assigned</option>${Object.keys(SUNCOURSES).map(k=>`<option value="${k}"${S.crs.Sunday==k?' selected':''}>${k}</option>`).join('')}</select></div>`:'';
 return `<div class="sec">${d}: ${a} to ${b}</div>${COURSE[d]?`<p class="mu" style="margin:-4px 2px 10px">${COURSE[d].n}, ${COURSE[d].loc}</p>`:''}${picker}`+ms.map(([m,mi])=>{
 const lt=i=>m.l[i].length?`<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:${i?'flex-end':'flex-start'}">${m.l[i].map(pi=>`<span title="${esc(S.teams[i].p[pi])}">${avatar(i,pi,S.teams[i].p[pi],44)}</span>`).join('')}</div>`:`<span class="mu" style="font-size:13px">Players not set</span>`;
-return `<div class="card"><h2>${lab(mi)}: ${esc(m.f)} ${m.n}v${m.n}</h2><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:4px 0 8px">${lt(0)}${lt(1)}</div>${rivalCard(m)}${thr(m)}`+
+return `<div class="card"><h2>${lab(mi)}: ${esc(m.f)} ${m.n}v${m.n}</h2>${(()=>{const tt=(TEET[m.d]||[])[S.matches.filter((x,i)=>i<=mi&&x.d==m.d).length-1];return tt?`<p class="mu" style="margin:-2px 0 6px;font-size:14px">Tee time${tt.length>1?'s':''} ${tt.join(' & ')}</p>`:''})()}<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:4px 0 8px">${lt(0)}${lt(1)}</div>${rivalCard(m)}${thr(m)}`+
 m.s.map((v,si)=>{const w=v?v.w:'',ti=w=='B'?1:0;
 const r=!v?'Not played':w=='H'?'Halved':esc(S.teams[ti].n);
 const bg=!v?'transparent':w=='H'?'linear-gradient(135deg,var(--red) 50%,var(--teal) 50%)':`var(--${V(ti)})`;
