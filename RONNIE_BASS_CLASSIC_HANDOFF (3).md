@@ -39,7 +39,7 @@ It does:
 |---|---|
 | `index.html` | The entire app: HTML shell, `<style>`, and one `<script>`. Very large because logos, team logos (2024/25/26/27 variants), and default player headshots are embedded as base64 data URLs. |
 | `manifest.json` | PWA manifest: name "Ronnie Bass Classic", short_name "Ronnie Bass", `start_url: ./index.html`, `scope: ./`, `display: standalone`, background/theme `#0B3350`, icons `icon-192.png` / `icon-512.png` (any + maskable). |
-| `sw.js` | Service worker, **network-first** with cached fallback when offline. `const CACHE = 'rbc-shell-v8'`; precaches `./`, `./index.html`, `./manifest.json`, `./icon-192.png`, `./icon-512.png`. Ignores cross-origin requests (Firebase). **Registered** at the end of `index.html`. **Bump `CACHE` on every release.** |
+| `sw.js` | Service worker, **network-first** with cached fallback when offline. `const CACHE = 'rbc-shell-v9'`; precaches `./`, `./index.html`, `./manifest.json`, `./icon-192.png`, `./icon-512.png`. Ignores cross-origin requests (Firebase). **Registered** at the end of `index.html`. **Bump `CACHE` on every release.** |
 | `firestore.rules` | Firestore security rules to paste into the Firebase console (reference copy; the app doesn't load it). |
 | `README.md` | Firebase setup guide (project, Firestore, anonymous auth, rules, `config/access` code doc, pasting `FIREBASE_CONFIG`). |
 | `icon-192.png`, `icon-512.png` | Home-screen icons. Referenced by manifest; were not in project knowledge, assumed to be in the GitHub repo (verify). |
@@ -348,8 +348,9 @@ No secret keys, no custom backend, no analytics. (Firebase web config is public 
 ## 14. Recently added (latest work, roughly newest first)
 - **Firebase live sync:** replaced the claude.ai-only DB with Firestore + anonymous auth, per-player field-level sync, offline cache, event access code (More → Change access code), `README.md`, `firestore.rules`.
 - **Match finalization:** "Submit final score" / "Edit this match anyway" (`m.final`); a match only counts as finished once finalized.
-- **Service worker:** registered; network-first (`rbc-shell-v8`). `<head>` fixed.
+- **Service worker:** registered; network-first (`rbc-shell-v9`). `<head>` fixed.
 - **More menu reordered** (Admin last); **Change access code moved into Admin**; **Rules page has an "Individual awards" section** (event awards Sunshine / Gerry Bertier / Alan Bosley, and round awards The Alpha, The Beta, Birdie Machine, Mr. Consistent, Hot Start, The Closer, Hacker). The awards text is static code in `rules()`, not part of the editable `S.rules`; if an award's logic changes, update it there.
+- **Award rename migration:** `fixNames()` (called at startup and after remote `meta` loads, next to `fixRoster()`) rewrites "Big Dog" / "Just Go Home" in the saved rules text to "The Alpha" / "The Beta" on the phone and in the shared database. Keep it in place.
 - **Saturday tee times** on Matches cards (`TEET` constant: 10:10, 10:20, 10:30 & 10:40 AM).
 - **Payouts overhaul:** 2027 amounts ($21/$21/$28/$70 Best Ball each; $340 Ryder Cup each; no Sunday), amounts shown next to each label, ties split, corrected **Best Ball** rule (lowest net best-ball pairing of the day from any match), renamed overall pot to **"Ryder Cup Champion"**, **Total payouts per player** table, buy-ins removed from display.
 - **Scoreboard** now shows only the current day's "Points in play" (auto-detected); Upcoming/Finished sections removed.
