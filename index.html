@@ -51,7 +51,7 @@ main{padding:16px}
 .aw small{display:block;font:800 16px 'Barlow Condensed',sans-serif;letter-spacing:.03em;text-transform:uppercase}
 .aw strong{display:block;font:800 28px/1.15 'Barlow Condensed',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .aw em{display:block;font-style:normal;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-nav{position:fixed;left:0;right:0;bottom:0;background:var(--navy);display:flex;padding:6px 2px calc(6px + env(safe-area-inset-bottom,0px));border-top:3px solid var(--gold);z-index:5}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--navy);display:flex;padding:6px 2px calc(6px + env(safe-area-inset-bottom,0px));border-top:3px solid var(--gold);z-index:5;-webkit-transform:translateZ(0);transform:translateZ(0);will-change:transform;-webkit-backface-visibility:hidden}
 nav button{flex:1;background:none;border:0;color:#b9c6cf;font:800 13px 'Barlow Condensed',sans-serif;letter-spacing:.06em;padding:10px 0;text-transform:uppercase;min-width:0}
 nav button.on{color:var(--gold)}
 #ov{position:fixed;inset:0;background:rgba(5,20,30,.6);display:none;align-items:flex-end;z-index:9}
