@@ -1015,9 +1015,11 @@ m.l.forEach((l,ti)=>l.forEach(pi=>{delete o[ti+'_'+pi];delete t[ti+'_'+pi]}));Ob
 
 // ---- Outbound: scan for anything locally changed since last confirmed sync, debounce, flush per field.
 function pa(){if(!DB||SY=='ro')return;
+if(LP.meta===undefined)return; // haven't heard from the server about the roster/settings yet — never push a guess over it
 const mk=jm('meta');if(mk!==LP.meta&&!TM.meta)TM.meta=setTimeout(()=>fl('meta','meta'),600);
 S.matches.forEach((m,i)=>{fkeys(i).forEach(field=>{const key='m'+i+'.'+field,val=fval(i,field);
 if(LP[key]===undefined&&val==='null')return; // never synced this field and nothing local to say either — don't write a placeholder that could shadow another device's real data, and don't block their update from landing
+if(LP[key]===undefined&&field=='struct')return; // never confirmed this match's lineup/format from the server — don't push our blank starting guess over someone else's real data
 if(val!==LP[key]&&!TM[key])TM[key]=setTimeout(()=>fl('m'+i,field),field=='struct'?500:900)})})}
 async function fl(docId,field){const key=docId+'.'+field;delete TM[key];
 if(BZ[key]){TM[key]=setTimeout(()=>fl(docId,field),400);return}BZ[key]=1;
@@ -1071,10 +1073,10 @@ let f1=1,f2=1;const seen={};
 DB.collection('match').onSnapshot(sn=>{let c=false;
 sn.docs.forEach(d=>{seen[d.id]=1;const data=d.data();
 Object.keys(data).forEach(f=>{if(f.endsWith('_v'))return;const v=data[f+'_v'];if(apField(d.id,f,data[f],v))c=true})});
-if(f1){f1=0;S.matches.forEach((m,i)=>{const id='m'+i;if(!seen[id])fkeys(i).forEach(field=>{const key=id+'.'+field;if(LP[key]===undefined)LP[key]=null})})}
-if(c)render();else pa()},()=>setSy(navigator.onLine===false?'off':'ro'));
-DB.doc('meta/main').onSnapshot(d=>{if(!d.exists){if(f2){f2=0;if(LP.meta===undefined)LP.meta=null}return}
-const c=apField('meta','meta',d.data().j,d.data().v);f2=0;if(c)render();else pa()},()=>setSy(navigator.onLine===false?'off':'ro'));
+if(f1&&!sn.metadata.fromCache){f1=0;S.matches.forEach((m,i)=>{const id='m'+i;if(!seen[id])fkeys(i).forEach(field=>{const key=id+'.'+field;if(LP[key]===undefined)LP[key]=null})})}
+if(c)render();else if(!sn.metadata.fromCache)pa()},()=>setSy(navigator.onLine===false?'off':'ro'));
+DB.doc('meta/main').onSnapshot(d=>{if(!d.exists){if(f2&&!d.metadata.fromCache){f2=0;if(LP.meta===undefined)LP.meta=null}return}
+const c=apField('meta','meta',d.data().j,d.data().v);if(!d.metadata.fromCache)f2=0;if(c)render();else if(!d.metadata.fromCache)pa()},()=>setSy(navigator.onLine===false?'off':'ro'));
 DB.collection('playerphotos').onSnapshot(sn=>{let ch=false;sn.docs.forEach(d=>{const data=d.data();if(data&&data.img&&PPICS[d.id]!==data.img){PPICS[d.id]=data.img;ch=true}});if(ch){savePPics();render()}},()=>{});
 pa()}
 function more(){if(MS)return `<button class="add" style="margin-bottom:12px" onclick="MS=null;render()">← More</button>`+(MS=='r'?rules():MS=='th'?themePage():MS=='i'?installPage():MS=='ph'?photosPage():MS=='pw'?rbPage():MS=='pwd'?rbDetail(PWD.ti,PWD.pi):MS=='pair'?rbPairPage():MS=='lb'?leaderboardPage():MS=='pay'?payoutsPage():admin());
