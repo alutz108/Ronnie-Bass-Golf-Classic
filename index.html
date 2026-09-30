@@ -856,9 +856,9 @@ ord.forEach(k=>{const t2=+k[0],p2=+k.split('_')[1],n=st[k]||0,ch1=cs?chd(m,t2,p2
 t+=`<tr class="wr"><th class="l">HOLE WON</th>${r.map(z=>`<td>${z?(z=='H'?'<span class="wp t">½</span>':`<span class="wp ${z=='A'?'a':'b'}">${sh(z=='A'?0:1)[0]}</span>`):''}</td>`).join('')}</tr>`;
 t+=`<tr class="wr"><th class="l"><span class="tp a">${sh(0)}</span><span class="tp b">${sh(1)}</span></th>${run.map(u=>`<td>${u==null?'':u==0?'<span class="wp t">AS</span>':`<span class="wp ${u>0?'a':'b'}">${Math.abs(u)}UP</span>`}</td>`).join('')}</tr></tbody></table>`;
 x+=`<div class="card" style="padding:8px 0 8px 8px"><div class="sgw">${t}</div></div>`;
+x+=finalCard(m,LV.mi);
 x+=`<div class="card"><h2>Nassau</h2>`+g.map((s,k)=>{const u=s.a-s.b,q=s.w?(s.w=='H'?'Halved':tn(s.w=='A'?0:1)+' wins'):(u?tn(u>0?0:1)+' '+Math.abs(u)+' up':'All square')+(s.p?' thru '+s.p:'');
 return `<div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span><b>${SEG[k]}</b> (${fr(m.pv[k])} pt)</span><span>${q}</span></div>`}).join('')+`</div>`;
-x+=finalCard(m,LV.mi);
 if(cs)x+=teeCard(m,st);
 x+=`<div class="card" style="padding:12px 14px"><h2 style="font-size:18px">Scorecard legend</h2><div class="lg"><span><i class="dt">●●</i>Strokes</span><span><b class="sq eg">3</b>Eagle</span><span><b class="sq bi">4</b>Birdie</span><span><b class="sq pa">5</b>Par</span><span><b class="sq bo">6</b>Bogey</span><span><b class="sq db">7</b>D.Bogey</span><span><b class="sq tr">8</b>Triple+</span></div></div>`;
 const par=cs?cs.par[h]:4,mx=2*par+2,v=(o[LV.k]||[])[h];
