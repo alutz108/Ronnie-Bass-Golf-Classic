@@ -1068,7 +1068,7 @@ try{
   if(field=='meta'){const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return false;
     const p=JSON.parse(val);S.event=p.event;S.teams=p.teams;S.rules=p.rules;fixRoster();fixNames()}
   else{const mi=+docId.slice(1);fapply(mi,field,val);const m=S.matches[mi];
-    if(m&&WROTE[mi]&&/^(sc|te)_/.test(field))seg(m).forEach((x,k)=>{const c=m.s[k];if(x.w&&(!c||(c.auto&&c.w!=x.w)))m.s[k]={w:x.w,auto:1}})} // only phones that have scored this match; only ever sets a decided result
+    if(m&&WROTE[mi]&&COURSE[m.d]&&/^(sc|te)_/.test(field))seg(m).forEach((x,k)=>{const c=m.s[k];if(x.w&&(!c||(c.auto&&c.w!=x.w)))m.s[k]={w:x.w,auto:1}})} // only phones that have scored this match; only ever sets a decided result
   LP[key]=val;if(v!=null)LPV[key]=v;return true
 }catch(e){return false}}
 
