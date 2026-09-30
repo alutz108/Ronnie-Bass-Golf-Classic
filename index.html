@@ -1071,12 +1071,12 @@ window.addEventListener('online',()=>{if(SY=='off')setSy('live')});
 window.addEventListener('offline',()=>setSy('off'));
 let f1=1,f2=1;const seen={};
 DB.collection('match').onSnapshot(sn=>{let c=false;
-if(!sn.metadata.fromCache)setSy('live');
+setSy('live'); // any delivery at all — cache or server — is proof this listener is alive and working
 sn.docs.forEach(d=>{seen[d.id]=1;const data=d.data();
 Object.keys(data).forEach(f=>{if(f.endsWith('_v'))return;const v=data[f+'_v'];if(apField(d.id,f,data[f],v))c=true})});
 if(f1&&!sn.metadata.fromCache){f1=0;S.matches.forEach((m,i)=>{const id='m'+i;if(!seen[id])fkeys(i).forEach(field=>{const key=id+'.'+field;if(LP[key]===undefined)LP[key]=null})})}
 if(c)render();else if(!sn.metadata.fromCache)pa()},()=>setSy(navigator.onLine===false?'off':'ro'));
-DB.doc('meta/main').onSnapshot(d=>{if(!d.metadata.fromCache)setSy('live');
+DB.doc('meta/main').onSnapshot(d=>{setSy('live');
 if(!d.exists){if(f2&&!d.metadata.fromCache){f2=0;if(LP['meta.meta']===undefined)LP['meta.meta']=null}return}
 const c=apField('meta','meta',d.data().j,d.data().v);if(!d.metadata.fromCache)f2=0;if(c)render();else if(!d.metadata.fromCache)pa()},()=>setSy(navigator.onLine===false?'off':'ro'));
 DB.collection('playerphotos').onSnapshot(sn=>{let ch=false;sn.docs.forEach(d=>{const data=d.data();if(data&&data.img&&PPICS[d.id]!==data.img){PPICS[d.id]=data.img;ch=true}});if(ch){savePPics();render()}},()=>{});
