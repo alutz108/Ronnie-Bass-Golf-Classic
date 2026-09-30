@@ -272,10 +272,10 @@ $('#lbl').textContent=LB[tab=='o'&&MS?MS:tab];$('#ev').textContent=S.event;
 document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==tab));
 $('#main').innerHTML=({a:admin,r:rules,s:()=>stand(c),m:()=>LV?liveView():matches(),h:history,t:players,o:more})[tab]();if(LV&&tab=='m')setTimeout(ctr,0)}
 function go(t){tab=t;LV=null;MS=null;PF=null;render();scrollTo(0,0)}
-function curDay(){for(const d of DAYS){const ms=S.matches.filter(m=>m.d==d);if(ms.length&&!ms.every(m=>m.s.every(x=>x)))return d}return DAYS[DAYS.length-1]}
+function curDay(){for(const d of DAYS){const ms=S.matches.filter(m=>m.d==d);if(ms.length&&!ms.every(m=>mFin(m)))return d}return DAYS[DAYS.length-1]}
 function stand(c){const [a,b]=S.teams,tot=S.matches.reduce((x,m)=>x+m.pv.reduce((p,q)=>p+q,0),0),d=Math.abs(c.t[0]-c.t[1]);
 const st=!c.n?'Tap a box below to score a point':c.t[0]==c.t[1]?'All square':`${esc(S.teams[c.t[0]>c.t[1]?0:1].n)} leads by ${d}`;
-const pj=projd(),rc=recs(),fin=[],inp=[],up=[];S.matches.forEach((m,mi)=>{(m.s.every(x=>x)?fin:thru(m)||m.s.some(x=>x)?inp:up).push(mi)});
+const pj=projd(),rc=recs(),fin=[],inp=[],up=[];S.matches.forEach((m,mi)=>{(mFin(m)?fin:thru(m)||m.s.some(x=>x)?inp:up).push(mi)});
 const mc=(mi,f)=>mcard(S.matches[mi],mi,rc,f),emp=t=>`<div class="card"><p class="mu" style="margin:0">${t}</p></div>`;
 let h=`<div class="sec" style="text-align:center;margin:0 0 2px">Overall summary</div><div style="text-align:center;margin-bottom:10px"><button class="lk" onclick="tab='o';MS='a';LV=null;render();scrollTo(0,0)">Enter admin mode</button></div><div class="tn">${[0,1].map(i=>`<div><img class="tl" style="height:48px;margin:0 auto 4px" src="${TL[i]}" alt=""><b>${esc(S.teams[i].n)}</b></div>`).join('')}</div><div class="sb2"><div class="a"><b>${c.t[0]}</b><small>${c.t[0]+pj[0]} PROJECTED</small></div><div class="b"><b>${c.t[1]}</b><small>${c.t[1]+pj[1]} PROJECTED</small></div></div>`;
 const cd=curDay(),inpToday=inp.filter(mi=>S.matches[mi].d==cd);
@@ -381,7 +381,7 @@ return{y25,y26,y27,hist,wH:hist==null?0:wH,w27:hist==null?(y27?1:0):w27,combined
 function rbMeetings(daysOK){const AL={Bradio:'Brad'},out=[];
 [2025,2026].forEach(y=>{RES[y].s.forEach(([t,rows])=>{rows.forEach(z=>{const A=z[0].split(' / '),B=z[3].split(' / '),tot=z[1]+z[2];if(!tot)return;
   A.forEach(a=>out.push({n:a,y,pts:z[1],max:tot,opp:B}));B.forEach(b=>out.push({n:b,y,pts:z[2],max:tot,opp:A}))})})});
-S.matches.forEach(m=>{if(daysOK&&!daysOK.includes(m.d))return;if(!(m.s||[]).length||!m.s.every(x=>x&&x.w))return;let fa=0,fb=0,tot=0;m.s.forEach((r,i)=>{const pv=(m.pv||[])[i]||0;tot+=pv;fa+=r.w=='A'?pv:r.w=='H'?pv/2:0;fb+=r.w=='B'?pv:r.w=='H'?pv/2:0});if(!tot)return;
+S.matches.forEach(m=>{if(daysOK&&!daysOK.includes(m.d))return;if(!mFin(m))return;let fa=0,fb=0,tot=0;m.s.forEach((r,i)=>{const pv=(m.pv||[])[i]||0;tot+=pv;fa+=r.w=='A'?pv:r.w=='H'?pv/2:0;fb+=r.w=='B'?pv:r.w=='H'?pv/2:0});if(!tot)return;
   const nmL=m.l[0].map(pi=>{const nm=S.teams[0].p[pi];return AL[nm]||nm}),nmG=m.l[1].map(pi=>{const nm=S.teams[1].p[pi];return AL[nm]||nm});
   nmL.forEach(n=>out.push({n,y:2027,pts:fa,max:tot,opp:nmG}));nmG.forEach(n=>out.push({n,y:2027,pts:fb,max:tot,opp:nmL}))});
 return out}
@@ -426,7 +426,7 @@ players.sort((a,b)=>(a.noData-b.noData)||b.rbpr-a.rbpr||b.hcpScore-a.hcpScore);p
 return{players,all,meet,best,worst,cfg}}
 
 // Chronological RBPR snapshots per completed 2027 day, for trend charts / previous-rank.
-function rbTrend(n){const done=DAYS.filter(d=>{const ms=S.matches.filter(m=>m.d==d);return ms.length&&ms.every(m=>m.s.every(x=>x))});
+function rbTrend(n){const done=DAYS.filter(d=>{const ms=S.matches.filter(m=>m.d==d);return ms.length&&ms.every(m=>mFin(m))});
 const snaps=[];
 for(let i=0;i<=done.length;i++){const r=rbAll(done.slice(0,i));const me=r.players.find(p=>p.n==n);
   snaps.push({label:i==0?'Preseason':done[i-1],rbpr:me?+me.rbpr.toFixed(1):null,rank:me?me.rank:null})}
@@ -648,7 +648,7 @@ if(day!='Sunday'){const pairs=bbPairs(day).filter(p=>p.thru==18);
   h+=`<div class="aw f"><small>Best Ball \u00b7 ${potStr(pay.bb)} each</small><strong>${winners.map(w=>w.pis.map((pi,i)=>avatar(w.ti,pi,w.names[i],22)+esc(w.names[i])).join(' / ')).join(', ')}</strong><em>${lines}</em></div>`;
   winners.forEach(w=>creditFlat(w.pis.map(pi=>({ti:w.ti,pi})),pay.bb/winners.length))}}
 h+=`</div>`});
-const allDone=S.matches.length&&S.matches.every(m=>m.s.every(x=>x)),tot=calc().t,winTi=tot[0]==tot[1]?-1:(tot[0]>tot[1]?0:1);
+const allDone=S.matches.length&&S.matches.every(m=>mFin(m)),tot=calc().t,winTi=tot[0]==tot[1]?-1:(tot[0]>tot[1]?0:1);
 h+=`<div class="sec">Ryder Cup Champion</div><div class="ag">`;
 if(!allDone)h+=`<div class="aw"><small>Ryder Cup \u00b7 ${potStr(S.pay.grand)} each</small><strong>\u2014</strong><em>Not finished yet \u00b7 currently ${tot[0]==tot[1]?'tied':esc(S.teams[winTi].n)+' leads'} ${tot[0]}\u2013${tot[1]} \u00b7 ${potStr(S.pay.grand)} each to the winning roster</em></div>`;
 else if(winTi<0){h+=`<div class="aw f"><small>Ryder Cup \u00b7 ${potStr(S.pay.grand)} each</small><strong>Tied \u2014 prize split</strong><em>Event tied ${tot[0]}\u2013${tot[1]} \u00b7 ${potStr(S.pay.grand/2)} each \u00b7 both rosters</em></div>`;S.teams.forEach((t,ti)=>t.p.forEach((nm,pi)=>creditFlat([{ti,pi}],S.pay.grand/2)))}
@@ -663,7 +663,7 @@ function jnAv(rows,size){size=size||22;if(!rows||!rows.length)return '—';if(ro
 function topBy(arr,key,dir){const valid=arr.filter(x=>x[key]!=null&&(key!='bestStreak'||x[key]>0)&&(key!='birdies'||x[key]>0)&&(key!='bad'||x[key]>0));if(!valid.length)return null;
 const v=dir=='min'?Math.min(...valid.map(x=>x[key])):Math.max(...valid.map(x=>x[key]));
 return{v,rows:valid.filter(x=>x[key]==v)}}
-function dayDone(day){const ms=S.matches.filter(m=>m.d==day);return ms.length>0&&ms.every(m=>m.s.every(x=>x))}
+function dayDone(day){const ms=S.matches.filter(m=>m.d==day);return ms.length>0&&ms.every(m=>mFin(m))}
 function sideAwards(day,title){const bs=bagStatsDay(day);if(!bs.length)return '';
 const pm=v=>v>0?'+'+v:v<0?String(v):'E';
 const card=(t,res,sub)=>`<div class="aw${res?' f':''}"><small>${t}</small><strong>${res?jnAv(res.rows):'—'}</strong><em>${res?sub(res):'No qualifying holes yet'}</em></div>`;
@@ -716,7 +716,7 @@ const RVMIN=3;
 function meetings(){const AL={Bradio:'Brad'},out=[];
 const push=(y,A,B,fa,fb,c)=>{if(!A.length||!B.length||A.length>3||B.length>3)return;const t=A.length==1&&B.length==1?'s':'t';A.forEach(a=>B.forEach(b=>out.push({y,a,b,fa,fb,t,c})))};
 [2025,2026].forEach(y=>RES[y].s.forEach(([t,rows,cr])=>rows.forEach(z=>push(y,z[0].split(' / '),z[3].split(' / '),z[1],z[2],cr||''))));
-S.matches.forEach(m=>{if(!(m.s||[]).length||!m.s.every(r=>r&&r.w))return;let fa=0,fb=0;m.s.forEach((r,i)=>{const pv=(m.pv||[])[i]||0;fa+=r.w=='A'?pv:r.w=='H'?pv/2:0;fb+=r.w=='B'?pv:r.w=='H'?pv/2:0});
+S.matches.forEach(m=>{if(!mFin(m))return;let fa=0,fb=0;m.s.forEach((r,i)=>{const pv=(m.pv||[])[i]||0;fa+=r.w=='A'?pv:r.w=='H'?pv/2:0;fb+=r.w=='B'?pv:r.w=='H'?pv/2:0});
 const nm=ti=>m.l[ti].map(pi=>{const n=S.teams[ti].p[pi];return AL[n]||n});push(2027,nm(0),nm(1),fa,fb,(COURSE[m.d]||{}).n||'')});
 return out}
 function dispN(n){return n=='Brad'&&S.teams.some(t=>t.p.includes('Bradio'))?'Bradio':n}
@@ -823,6 +823,7 @@ return c?g+(n?n+(n>1?' strokes':' stroke')+(d?' · '+'●'.repeat(d)+' this hole
 function holes(m){return Array.from({length:18},(_,h)=>{const a=best(m,0,h),b=best(m,1,h);return a==null||b==null?null:a<b?'A':a>b?'B':'H'})}
 function seg(m){const r=holes(m);return [[0,9],[9,18],[0,18]].map(([s,e])=>{let a=0,b=0,p=0;for(let i=s;i<e;i++){const x=r[i];if(!x)continue;p++;if(x=='A')a++;else if(x=='B')b++}
 const rem=e-s-p,u=a-b;return{a,b,p,w:u>rem?'A':-u>rem?'B':!rem?'H':null}})}
+function mFin(m){return m.s.every(x=>x)&&!!m.final}
 function sync(m,mi){seg(m).forEach((x,k)=>{const c=m.s[k];if(x.w){if(!c||(c.auto&&c.w!=x.w)){m.s[k]={w:x.w,auto:1};lg(`${lab(mi)} ${SEG[k]}: ${x.w=='H'?'halved':S.teams[x.w=='A'?0:1].n+' won'} (from hole scores)`)}}else if(c&&c.auto)m.s[k]=null})}
 function thr(m){const n=holes(m).filter(Boolean).length;return n?`<p class="mu" style="margin:6px 0 0"><b>Thru ${n} holes</b></p>`:''}
 function order(m){return [0,1].flatMap(ti=>m.l[ti].map(pi=>ti+'_'+pi))}
@@ -833,6 +834,12 @@ function hole(h){LV.h=Math.max(0,Math.min(17,h));render()}
 function sc(ti,pi,d){const m=S.matches[LV.mi],o=S.sc[m.d]=S.sc[m.d]||{},k=ti+'_'+pi,a=o[k]=o[k]||Array(18).fill(null);let v=a[LV.h];
 if(v==null||v==99){const c=COURSE[m.d],p=c?c.par[LV.h]:4;v=d>0?p+4:p-2}else v=Math.max(1,Math.min(2*(COURSE[m.d]?COURSE[m.d].par[LV.h]:4)+2,v+d));
 a[LV.h]=v;sync(m,LV.mi);render()}
+function finalCard(m,mi){const done=m.s.every(x=>x);
+if(m.final)return `<div class="card" style="border-color:var(--teal)"><h2>\u2713 Match finalized</h2><p class="mu" style="margin:0 0 10px">These scores count toward standings, points and Power Rankings. Made a mistake? You can still fix it.</p><button class="op go" style="width:100%" onclick="unfinalize(${mi})">Edit this match anyway</button></div>`;
+if(!done)return '';
+return `<div class="card" style="border-color:var(--teal)"><h2>Ready to submit</h2><p class="mu" style="margin:0 0 10px">All 18 holes are in for every player. Submitting locks this match in as final \u2014 it'll count toward standings, points and Power Rankings.</p><button class="op go" style="width:100%" onclick="finalizeMatch(${mi})">Submit final score</button></div>`}
+function finalizeMatch(mi){const m=S.matches[mi];if(!m.s.every(x=>x))return;m.final=Date.now();sync(m,mi);save();render()}
+function unfinalize(mi){const m=S.matches[mi];delete m.final;sync(m,mi);save();render()}
 function liveView(){const m=S.matches[LV.mi],cs=COURSE[m.d],o=S.sc[m.d]||{},tn=i=>esc(S.teams[i].n),r=holes(m),g=seg(m),st=stk(m),ord=order(m),sh=i=>esc(S.teams[i].n.replace(/^Team\s+/i,'').toUpperCase());
 let x=`<button class="add" style="margin-bottom:12px" onclick="LV=null;render()">← All matches</button>`;
 if(!m.l[0].length||!m.l[1].length)return x+`<div class="card"><h2>${lab(LV.mi)}: ${esc(m.f)} ${m.n}v${m.n}</h2><p class="mu">Pick players for both teams to start live scoring.</p><button class="op go" onclick="lineup(${LV.mi})">Select players</button></div>`;
@@ -850,6 +857,7 @@ t+=`<tr class="wr"><th class="l"><span class="tp a">${sh(0)}</span><span class="
 x+=`<div class="card" style="padding:8px 0 8px 8px"><div class="sgw">${t}</div></div>`;
 x+=`<div class="card"><h2>Nassau</h2>`+g.map((s,k)=>{const u=s.a-s.b,q=s.w?(s.w=='H'?'Halved':tn(s.w=='A'?0:1)+' wins'):(u?tn(u>0?0:1)+' '+Math.abs(u)+' up':'All square')+(s.p?' thru '+s.p:'');
 return `<div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span><b>${SEG[k]}</b> (${fr(m.pv[k])} pt)</span><span>${q}</span></div>`}).join('')+`</div>`;
+x+=finalCard(m,LV.mi);
 if(cs)x+=teeCard(m,st);
 x+=`<div class="card" style="padding:12px 14px"><h2 style="font-size:18px">Scorecard legend</h2><div class="lg"><span><i class="dt">●●</i>Strokes</span><span><b class="sq eg">3</b>Eagle</span><span><b class="sq bi">4</b>Birdie</span><span><b class="sq pa">5</b>Par</span><span><b class="sq bo">6</b>Bogey</span><span><b class="sq db">7</b>D.Bogey</span><span><b class="sq tr">8</b>Triple+</span></div></div>`;
 const par=cs?cs.par[h]:4,mx=2*par+2,v=(o[LV.k]||[])[h];
@@ -949,7 +957,7 @@ const sel=`<div class="card" style="padding:12px 14px"><label class="lbl" style=
 return sel+(MY==2027?cur():old(MY))}
 function thru(m){let t=0;holes(m).forEach((x,i)=>{if(x)t=i+1});return t}
 function mp2(m){let a=0,b=0;m.s.forEach((v,k)=>{if(!v)return;const p=m.pv[k];if(v.w=='H'){a+=p/2;b+=p/2}else if(v.w=='A')a+=p;else b+=p});return[a,b]}
-function recs(){const r=S.teams.map(t=>t.p.map(()=>[0,0,0]));S.matches.forEach(m=>{if(!m.s.every(x=>x))return;const[a,b]=mp2(m);m.l.forEach((l,ti)=>l.forEach(pi=>{const x=ti?b-a:a-b;if(r[ti][pi])r[ti][pi][x>0?0:x<0?1:2]++}))});return r}
+function recs(){const r=S.teams.map(t=>t.p.map(()=>[0,0,0]));S.matches.forEach(m=>{if(!mFin(m))return;const[a,b]=mp2(m);m.l.forEach((l,ti)=>l.forEach(pi=>{const x=ti?b-a:a-b;if(r[ti][pi])r[ti][pi][x>0?0:x<0?1:2]++}))});return r}
 function projd(){const p=[0,0];S.matches.forEach(m=>{const g=seg(m);m.s.forEach((v,k)=>{if(v)return;const u=g[k].a-g[k].b,x=m.pv[k];if(u>0)p[0]+=x;else if(u<0)p[1]+=x;else{p[0]+=x/2;p[1]+=x/2}})});return p}
 function mbd(m,fin){if(fin){const[a,b]=mp2(m);return a==b?{c:'t',t:'TIED'}:{c:a>b?'a':'b',t:Math.max(a,b)+'–'+Math.min(a,b)}}
 const g=seg(m)[2],u=g.a-g.b;return u?{c:u>0?'a':'b',t:Math.abs(u)+'UP'}:{c:'t',t:thru(m)?'TIED':'—'}}
@@ -990,12 +998,12 @@ function setSy(s){SY=s;const e=$('#sy');if(e){e.textContent=s=='live'?'\u25cf Li
 // editing two different players in the same match write to different fields and never collide.
 function fkeys(i){const m=S.matches[i];if(!m)return[];const keys=['struct'];
 m.l.forEach((l,ti)=>l.forEach(pi=>{keys.push('sc_'+ti+'_'+pi);keys.push('te_'+ti+'_'+pi)}));return keys}
-function fval(i,field){const m=S.matches[i];if(field=='struct')return JSON.stringify({d:m.d,f:m.f,n:m.n,pv:m.pv,l:m.l,s:m.s});
+function fval(i,field){const m=S.matches[i];if(field=='struct')return JSON.stringify({d:m.d,f:m.f,n:m.n,pv:m.pv,l:m.l,s:m.s,final:m.final||null});
 const[pre,ti,pi]=field.split('_'),k=ti+'_'+pi;
 if(pre=='sc')return JSON.stringify((S.sc[m.d]||{})[k]||null);
 return JSON.stringify((S.tees[m.d]||{})[k]||null)}
 function fapply(i,field,raw){const m=S.matches[i];if(!m)return;const v=JSON.parse(raw);
-if(field=='struct'){if(m.d!==v.d)return;Object.assign(m,{f:v.f,n:v.n,pv:v.pv,l:v.l,s:v.s});return}
+if(field=='struct'){if(m.d!==v.d)return;Object.assign(m,{f:v.f,n:v.n,pv:v.pv,l:v.l,s:v.s,final:v.final||null});return}
 const[pre,ti,pi]=field.split('_'),k=ti+'_'+pi;
 if(pre=='sc'){const o=S.sc[m.d]=S.sc[m.d]||{};if(v==null)delete o[k];else o[k]=v}
 else{const t=S.tees[m.d]=S.tees[m.d]||{};if(v==null)delete t[k];else t[k]=v}}
@@ -1035,7 +1043,7 @@ try{
 }catch(e){return false}}
 
 // ---- Firebase wiring. FIREBASE_CONFIG is filled in by whoever deploys this (see README).
-const FIREBASE_CONFIG={apiKey:"AIzaSyDARWa3krRGjmKbVB0n6SnSBPCO0aPX85k",authDomain:"ronnie-bass-classic.firebaseapp.com",projectId:"ronnie-bass-classic",storageBucket:"ronnie-bass-classic.firebasestorage.app",messagingSenderId:"258291571639",appId:"1:258291571639:web:41dda39cf278563a2c2632"};
+const FIREBASE_CONFIG={apiKey:"__FIREBASE_API_KEY__",authDomain:"__FIREBASE_AUTH_DOMAIN__",projectId:"__FIREBASE_PROJECT_ID__",storageBucket:"__FIREBASE_STORAGE_BUCKET__",messagingSenderId:"__FIREBASE_SENDER_ID__",appId:"__FIREBASE_APP_ID__"};
 let EVENT_CODE=null;
 function ensureCode(){try{EVENT_CODE=localStorage.getItem('rbc_code')}catch(e){}
 if(!EVENT_CODE){EVENT_CODE=(prompt('Enter this event\'s access code (ask the commissioner):')||'').trim();
