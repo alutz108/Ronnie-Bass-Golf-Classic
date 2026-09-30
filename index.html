@@ -1044,12 +1044,14 @@ try{
 }catch(e){return false}}
 
 // ---- Firebase wiring. FIREBASE_CONFIG is filled in by whoever deploys this (see README).
-const FIREBASE_CONFIG={apiKey:"__FIREBASE_API_KEY__",authDomain:"__FIREBASE_AUTH_DOMAIN__",projectId:"__FIREBASE_PROJECT_ID__",storageBucket:"__FIREBASE_STORAGE_BUCKET__",messagingSenderId:"__FIREBASE_SENDER_ID__",appId:"__FIREBASE_APP_ID__"};
+const FIREBASE_CONFIG={apiKey:"AIzaSyDARWa3krRGjmKbVB0n6SnSBPCO0aPX85k",authDomain:"ronnie-bass-classic.firebaseapp.com",projectId:"ronnie-bass-classic",storageBucket:"ronnie-bass-classic.firebasestorage.app",messagingSenderId:"258291571639",appId:"1:258291571639:web:41dda39cf278563a2c2632"};
 let EVENT_CODE=null;
 function ensureCode(){try{EVENT_CODE=localStorage.getItem('rbc_code')}catch(e){}
 if(!EVENT_CODE){EVENT_CODE=(prompt('Enter this event\'s access code (ask the commissioner):')||'').trim();
 try{localStorage.setItem('rbc_code',EVENT_CODE)}catch(e){}}
 return EVENT_CODE}
+function changeCode(){const v=(prompt('Enter an access code. The real edit code unlocks scoring and pairings; anything else is view-only.',EVENT_CODE||'')||'').trim();
+EVENT_CODE=v;try{localStorage.setItem('rbc_code',v)}catch(e){}setSy(DB?'connecting':'local');render()}
 async function initDb(){
 try{
   if(typeof firebase==='undefined')throw new Error('Firebase SDK not loaded');
@@ -1076,7 +1078,7 @@ const c=apField('meta','meta',d.data().j,d.data().v);f2=0;if(c)render();else pa(
 DB.collection('playerphotos').onSnapshot(sn=>{let ch=false;sn.docs.forEach(d=>{const data=d.data();if(data&&data.img&&PPICS[d.id]!==data.img){PPICS[d.id]=data.img;ch=true}});if(ch){savePPics();render()}},()=>{});
 pa()}
 function more(){if(MS)return `<button class="add" style="margin-bottom:12px" onclick="MS=null;render()">← More</button>`+(MS=='r'?rules():MS=='th'?themePage():MS=='i'?installPage():MS=='ph'?photosPage():MS=='pw'?rbPage():MS=='pwd'?rbDetail(PWD.ti,PWD.pi):MS=='pair'?rbPairPage():MS=='lb'?leaderboardPage():MS=='pay'?payoutsPage():admin());
-return `<div class="card" style="padding:4px 14px">`+[['lb','Leaderboard','Net scores across every player'],['pw','Power rankings','All 14 players ranked 1 to 14'],['pay','Payouts','Who wins the side-bet pots'],['r','Rules','Format, scoring and awards'],['a','Admin','Event name, Nassau points and reset'],['th','Appearance','Light, dark or match your device'],['i','Install app','Add to your home screen'],['ph','Photo album','Trip photos, one album per year']].map(([k,t,d])=>`<button class="mi" onclick="MS='${k}';render();scrollTo(0,0)"><span><b>${t}</b><small>${d}</small></span><i>›</i></button>`).join('')+`</div>`}
+return `<div class="card" style="padding:4px 14px">`+[['lb','Leaderboard','Net scores across every player'],['pw','Power rankings','All 14 players ranked 1 to 14'],['pay','Payouts','Who wins the side-bet pots'],['r','Rules','Format, scoring and awards'],['a','Admin','Event name, Nassau points and reset'],['th','Appearance','Light, dark or match your device'],['i','Install app','Add to your home screen'],['cc','Change access code','Switch between edit and view-only'],['ph','Photo album','Trip photos, one album per year']].map(([k,t,d])=>`<button class="mi" onclick="${k=='cc'?'changeCode()':`MS='${k}';render();scrollTo(0,0)`}"><span><b>${t}</b><small>${d}</small></span><i>›</i></button>`).join('')+`</div>`}
 let INSTALLP=null,INSTALLED=false;
 try{
  if(typeof window!=='undefined'){
