@@ -1061,7 +1061,7 @@ try{
   if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
   DB=firebase.firestore();
   ensureCode();
-  try{await DB.enablePersistence({synchronizeTabs:true})}catch(e){} // offline cache; fine if unsupported/already enabled elsewhere
+  try{await Promise.race([DB.enablePersistence(),new Promise(r=>setTimeout(r,1500))])}catch(e){} // offline cache; timed out or unsupported is fine either way — never let this block startup
   await firebase.auth().signInAnonymously();
   AUTH_OK=true;
 }catch(e){DB=null}
