@@ -16,7 +16,7 @@
 :root[data-theme="dark"]{--bg:#07202f;--card:#0d3048;--ink:#F5E8D3;--muted:#9fb2bd;--line:#245069}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--navy)}
-body{margin:0;background:var(--bg);color:var(--ink);font:500 16px/1.35 'Barlow',system-ui,sans-serif;padding-bottom:84px;min-height:100vh}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 16px/1.35 'Barlow',system-ui,sans-serif;padding-bottom:56px;min-height:100vh}
 button{font-family:inherit;cursor:pointer}
 header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--navy);border-bottom:3px solid var(--gold);padding:12px 16px;display:flex;align-items:center;gap:14px;color:#F5E8D3}
 header img{width:60px;height:60px;border-radius:50%;flex:none;box-shadow:0 0 0 2px var(--gold)}
@@ -51,8 +51,10 @@ main{padding:16px}
 .aw small{display:block;font:800 16px 'Barlow Condensed',sans-serif;letter-spacing:.03em;text-transform:uppercase}
 .aw strong{display:block;font:800 28px/1.15 'Barlow Condensed',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .aw em{display:block;font-style:normal;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-nav{position:fixed;left:0;right:0;bottom:0;background:var(--navy);display:flex;padding:6px 2px calc(6px + env(safe-area-inset-bottom,0px));border-top:3px solid var(--gold);z-index:5;-webkit-transform:translateZ(0);transform:translateZ(0);will-change:transform;-webkit-backface-visibility:hidden}
-nav button{flex:1;background:none;border:0;color:#b9c6cf;font:800 13px 'Barlow Condensed',sans-serif;letter-spacing:.06em;padding:10px 0;text-transform:uppercase;min-width:0}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--navy);display:flex;padding:0 2px max(3px,calc(env(safe-area-inset-bottom,0px) - 14px));border-top:2px solid var(--gold);z-index:5;-webkit-transform:translateZ(0);transform:translateZ(0);will-change:transform;-webkit-backface-visibility:hidden;transition:transform .22s ease}
+nav.hid{-webkit-transform:translate3d(0,100%,0);transform:translate3d(0,100%,0)}
+@media(prefers-reduced-motion:reduce){nav{transition:none}}
+nav button{flex:1;background:none;border:0;color:#b9c6cf;font:800 13px 'Barlow Condensed',sans-serif;letter-spacing:.06em;padding:9px 0;text-transform:uppercase;min-width:0}
 nav button.on{color:var(--gold)}
 @media(max-width:420px){nav button{letter-spacing:.02em}}@media(max-width:350px){nav button{font-size:12px;letter-spacing:.01em}}
 #ov{position:fixed;inset:0;background:rgba(5,20,30,.6);display:none;align-items:flex-end;z-index:9}
@@ -1326,6 +1328,9 @@ try{window.addEventListener('error',ev=>{try{lg('ERROR '+String(ev&&ev.message||
 // iOS Safari can leave the bottom menu (and the strip under it) unpainted after its own toolbar collapses mid-scroll. Nudge the menu back whenever scrolling settles or the visible area changes.
 (function(){let t=0;const nudge=()=>{try{const n=document.querySelector('nav');if(!n)return;n.style.bottom='-1px';requestAnimationFrame(()=>{n.style.bottom='0'})}catch(e){}},soon=()=>{clearTimeout(t);t=setTimeout(nudge,120)};
 try{window.addEventListener('scroll',soon,{passive:true});window.addEventListener('orientationchange',soon);window.addEventListener('pageshow',soon);if(window.visualViewport){window.visualViewport.addEventListener('resize',soon);window.visualViewport.addEventListener('scroll',soon)}}catch(e){}})();
+// The bottom menu slides away while you scroll down and comes back as soon as you scroll up (or reach the top or bottom), so it never covers content.
+(function(){let last=window.scrollY||0,acc=0,hid=false;const set=v=>{if(v===hid)return;hid=v;const n=document.querySelector('nav');if(n)n.classList.toggle('hid',v)};
+try{window.addEventListener('scroll',()=>{const y=window.scrollY||0,max=document.documentElement.scrollHeight-innerHeight;if(y<0||y>max){last=y;return}const d=y-last;last=y;if(y<=60||y>=max-40){set(false);acc=0;return}if((d>0)!==(acc>0))acc=0;acc+=d;if(acc>14)set(true);else if(acc<-6)set(false)},{passive:true});window.addEventListener('orientationchange',()=>set(false))}catch(e){}})();
 render();
 initDb();
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{})})}
