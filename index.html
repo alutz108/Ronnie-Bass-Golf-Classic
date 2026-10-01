@@ -1,5 +1,6 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>try{if(navigator.standalone||(window.matchMedia&&matchMedia("(display-mode: standalone)").matches))document.querySelector("meta[name=viewport]").setAttribute("content","width=device-width, initial-scale=1, viewport-fit=cover")}catch(e){}</script>
 <meta name="color-scheme" content="light dark">
 <title>Ronnie Bass Classic</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Barlow:wght@500;700&display=swap" rel="stylesheet">
@@ -894,7 +895,10 @@ function admin(){return `<div class="card"><h2>Event</h2><input class="in" value
 ${teesAdmin()}
 ${rbConfigCard()}
 <div class="card"><h2>Rules text</h2><textarea class="in" oninput="S.rules=this.value;save()">${esc(S.rules)}</textarea></div>
-<div class="card"><h2>Reset</h2><button class="rs" onclick="reset(this)">Reset all scores</button><button class="rs" style="margin-top:10px" onclick="clr(this)">Clear history</button></div>`}
+<div class="card"><h2>Reset</h2><button class="rs" onclick="reset(this)">Reset all scores</button><button class="rs" style="margin-top:10px" onclick="clr(this)">Clear history</button></div>
+<div class="card"><h2>Screen info</h2><p class="mu">Only for troubleshooting. If something looks cut off on your phone, send a screenshot of this card.</p>${scrInfo()}</div>`}
+function scrInfo(){try{const d=document.createElement('div');d.style.cssText='position:fixed;left:0;top:0;visibility:hidden;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px) 0';document.body.appendChild(d);const cs=getComputedStyle(d),st=cs.paddingTop,sb=cs.paddingBottom;d.remove();const vv=window.visualViewport,m=document.querySelector('meta[name=viewport]'),sa=!!(navigator.standalone||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches));
+return [['Screen',screen.width+' x '+screen.height],['Window (innerHeight)',innerWidth+' x '+innerHeight],['Layout height',document.documentElement.clientHeight],['Visual viewport',vv?Math.round(vv.width)+' x '+Math.round(vv.height)+' (offset '+Math.round(vv.offsetTop)+')':'n/a'],['Safe area top / bottom',st+' / '+sb],['Home Screen app',sa?'yes':'no'],['Viewport',m?m.getAttribute('content'):'n/a']].map(r=>`<div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>${r[0]}</span><b>${esc(r[1])}</b></div>`).join('')}catch(e){return ''}}
 function teeOfD(d,ti,pi){const c=COURSE[d],t=(S.tees[d]||{})[ti+'_'+pi];return c?(c.tees[t]?t:c.def):null}
 function chDay(d,ti,pi){const c=COURSE[d],x=pidx(S.teams[ti].h[pi]);if(!c||x==null)return null;const T=c.tees[teeOfD(d,ti,pi)];return Math.round(x*T.s/113+T.r-c.p)}
 function tcTxt(d,ti,pi){const x=chDay(d,ti,pi),h=S.teams[ti].h[pi];return h?'Index '+h+' \u00b7 Course Handicap '+x:'No handicap yet. Add it on the Teams tab.'}
@@ -1326,7 +1330,7 @@ return x}
 
 try{window.addEventListener('error',ev=>{try{lg('ERROR '+String(ev&&ev.message||'').slice(0,120))}catch(x){}});window.addEventListener('unhandledrejection',ev=>{try{lg('ERROR '+String(ev&&ev.reason&&ev.reason.message||ev.reason||'').slice(0,120))}catch(x){}})}catch(e){}
 // iOS Safari can leave the bottom menu (and the strip under it) unpainted after its own toolbar collapses mid-scroll. Nudge the menu back whenever scrolling settles or the visible area changes.
-(function(){let t=0;const nudge=()=>{try{const n=document.querySelector('nav');if(!n)return;n.style.bottom='-1px';requestAnimationFrame(()=>{n.style.bottom='0'})}catch(e){}},soon=()=>{clearTimeout(t);t=setTimeout(nudge,120)};
+(function(){let t=0;const nudge=()=>{try{const n=document.querySelector('nav');if(n&&getComputedStyle(n).display!=='none'){n.style.bottom='-1px';requestAnimationFrame(()=>{n.style.bottom='0'})}const b=document.body;b.style.minHeight='calc(100vh + 1px)';requestAnimationFrame(()=>{b.style.minHeight=''})}catch(e){}},soon=()=>{clearTimeout(t);t=setTimeout(nudge,120)};
 try{window.addEventListener('scroll',soon,{passive:true});window.addEventListener('orientationchange',soon);window.addEventListener('pageshow',soon);if(window.visualViewport){window.visualViewport.addEventListener('resize',soon);window.visualViewport.addEventListener('scroll',soon)}}catch(e){}})();
 // The bottom menu slides away while you scroll down and comes back as soon as you scroll up (or reach the top or bottom), so it never covers content.
 (function(){let last=window.scrollY||0,acc=0,hid=false;const set=v=>{if(v===hid)return;hid=v;const n=document.querySelector('nav');if(n)n.classList.toggle('hid',v)};
