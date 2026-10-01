@@ -39,7 +39,7 @@ It does:
 |---|---|
 | `index.html` | The entire app: HTML shell, `<style>`, and one `<script>`. Very large because logos, team logos (2024/25/26/27 variants), and default player headshots are embedded as base64 data URLs. |
 | `manifest.json` | PWA manifest: name "Ronnie Bass Classic", short_name "Ronnie Bass", `start_url: ./index.html`, `scope: ./`, `display: standalone`, background/theme `#0B3350`, icons `icon-192.png` / `icon-512.png` (any + maskable). |
-| `sw.js` | Service worker, **network-first** with cached fallback when offline. `const CACHE = 'rbc-shell-v13'`; precaches `./`, `./index.html`, `./manifest.json`, `./icon-192.png`, `./icon-512.png`. Ignores cross-origin requests (Firebase). **Registered** at the end of `index.html`. **Bump `CACHE` on every release.** |
+| `sw.js` | Service worker, **network-first** with cached fallback when offline. `const CACHE = 'rbc-shell-v14'`; precaches `./`, `./index.html`, `./manifest.json`, `./icon-192.png`, `./icon-512.png`. Ignores cross-origin requests (Firebase). **Registered** at the end of `index.html`. **Bump `CACHE` on every release.** |
 | `firestore.rules` | Firestore security rules to paste into the Firebase console (reference copy; the app doesn't load it). |
 | `README.md` | Firebase setup guide (project, Firestore, anonymous auth, rules, `config/access` code doc, pasting `FIREBASE_CONFIG`). |
 | `icon-192.png`, `icon-512.png` | Home-screen icons. Referenced by manifest; were not in project knowledge, assumed to be in the GitHub repo (verify). |
@@ -78,7 +78,7 @@ External requests: Google Fonts (Barlow 500/700, Barlow Condensed 700/800) and t
 | Var | Meaning |
 |---|---|
 | `tab` | Current bottom tab: `'t'` Teams, `'l'` Leaderboard, `'s'` Scoreboard (**default**), `'m'` Matches, `'o'` More (`'h'` still exists in the router for History but is no longer a tab) |
-| `LV` | Live scoring view state `{mi, h, k}` (match index, hole 0–17, selected player key `"ti_pi"`), or `null` |
+| `LV` | Live scoring view state `{mi, h, k, tab, follow, look, more, hist}` (match index, hole 0–17, selected player key `"ti_pi"`, tab, follower flags, undo history), or `null`. Timers/flags: `LVT` (auto-advance), `LVP`/`LVD`/`LVDT` (team-score change chip) |
 | `MS` | Sub-page inside More: `'h'` (History), `'pw','pwd','pair','pay','r','a','th','i','ph'`, or `null` (`'lb'` is legacy and no longer in the menu) |
 | `PF` | Player profile open on Teams `{ti,pi}` or `null` |
 | `TE` | Teams tab in roster-edit mode (bool) |
@@ -225,15 +225,22 @@ Totals: Fri 6 pts, Sat 6 pts, Sun 28 pts → **40 points**.
 
 ## 6. Live scoring & multi-user interaction
 
-### 6.1 Entering scores (`live(mi)` → `liveView()`)
-- Opens on the first empty hole/player. If lineups are missing → prompt to "Select players".
-- Header card: match label, course, tees used (rating/slope).
-- **Scorecard grid** (`table.sg` in `.sgw`, horizontally scrolls and auto-centers the selected cell via `ctr()`): rows HOLE, PAR, HDCP; one row per player (team-colored name, "CH x · +strokes / scratch"); cells show **stroke dots** (●) for handicap strokes on that hole and a colored score square (`eg` eagle-or-better, `bi` birdie, `pa` par, `bo` bogey, `db` double, `tr` triple+); then **HOLE WON** row (team initial or ½) and a running status row (AS / nUP colored by team).
-- Nassau card (front/back/overall status), Tees & strokes card (`teeCard`, per-player tee dropdown → `setTee`), Scorecard legend.
-- **Sticky entry panel** (`.ep`): player · hole · par · hdcp, net/stroke info (`sm()`), hole result; buttons: **−**, one-tap **par−1, par, par+1, par+2, par+3**, **+**, and clear (`clr1()`).
-  - `ch(ti,pi,n)` sets the score (tapping the same value again clears it) then **auto-advances** with `step(1)`: next player on the same hole, then next hole.
-  - `sc(ti,pi,±1)` increments/decrements; clamped to 1…**double par + 2** (8/10/12). **No pickup/X button.**
-  - Tap any cell (`pick`) or hole header (`hole`) to jump.
+### 6.1 Entering scores (`live(mi)` → `liveView()`) — new hole-by-hole screen (Sept 30, 2026)
+Designed and approved by the owner from an interactive mockup. While a match is open (`LV` set, `tab=='m'`) `render0` adds `body.live`, which **hides the bottom nav and the app header** (CSS `body.live nav, body.live header{display:none}`); the ✕ button exits (`LV=null`). The previous screen is kept as `liveViewOld()` (not called) for reference.
+- `LV = {mi, h, k, tab, follow, look, more, hist}`: match index, hole 0–17, selected player key `"ti_pi"`, current tab (`'hole'|'card'|'stat'`, default hole), follower mode, "looking back" flag, More-numbers toggle, undo history (max 60).
+- Opens on the first empty hole/player. If lineups are missing → prompt to "Select players". If the day's course isn't set (Sunday) a warning card says strokes are not counted yet.
+- **Top block** (navy `.lvt`): ✕, match label + course/tees, **FOLLOW/SCORE** pill and a small sync status (LIVE/OFFLINE/CONNECTING/LOCAL; "VIEW ONLY" when `SY=='ro'`). Two team blocks (red/teal) each showing the team's **live Ryder Cup points** (`calc().t`) and **PROJ** (`t + projd()`), same numbers as the Scoreboard; a gold `+½` chip appears for ~2.6 s when a team's points increase (`LVP`, `LVD`, `LVDT`). Under them: overall status ("LUTZ 2 UP · thru 5") and three Nassau chips (Front 9 / Back 9 / Overall with points value).
+- **Tabs:** Hole | Card | Status (`lvTab`).
+- **Hole tab:** two rows of 9 hole circles (red/teal = team won, grey = halved, dashed = partly scored, gold ring = current; `holeGo(i)`), hole header with ‹ › (`holeGo(h±1)`; PAR and STROKE INDEX), a result banner **above** the rows ("Waiting on Justin" / "LUTZ wins the hole · best net 3 vs 4" + **Undo**), then one row per player (`.lvr`: avatar, name, stroke dots/“no stroke”, `net n`, big score in the existing `.sq` shapes). Tap a row to select it (`pick`).
+- **Docked keypad** (`.lvk`, sticky bottom): label "Player · hole · par", **Clear**, five keys: par−1 Birdie, par, par+1 Bogey, par+2 Double, **More** (reveals the other numbers up to double par + 2). Max score is still **double par + 2**; **no pickup/X button**.
+  - `kp(n)` sets the selected player's score (tapping the same number clears it), calls `sync`, then `lvAdv`: moves to the next player without a score on that hole; when the hole becomes complete it shows the result banner and **auto-advances to the next hole after 1.1 s** (`LVT` timer; cleared by any manual navigation, `pick`, tab change or Undo). After hole 18 it opens the Status tab. Editing an already-complete hole does not auto-advance.
+  - `lvUndo()` restores the last entry (and returns to that hole); `lvClr()` clears the selected cell.
+  - `kp`/`lvClr` do nothing when `SY=='ro'`.
+- **Card tab:** the previous scorecard grid (`table.sg`, horizontally scrolls, centers on the selected cell via `ctr()`) plus the legend. Tapping a score or a hole header jumps to the Hole tab at that cell (`lvPick`, `holeGo(i,1)`).
+- **Status tab:** `finalCard` (Submit final score / Match finalized + Edit anyway), the Nassau card, and the Tees & strokes card (`teeCard`, per-player tee dropdown → `setTee`).
+- **Follower mode** (for people watching): FOLLOW pill (or automatically when view-only) hides the keypad and row selection and **auto-jumps to the latest scored hole** whenever data changes (`lvLast`). Browsing a hole sets `LV.look`; "Jump to live" (`lvLive`) resumes following.
+- `lvScroll()` (called from `render0`) keeps the selected row visible above the keypad.
+- Old helpers still exist and are used elsewhere/tests: `ch`, `sc`, `step`, `hole`, `clr1`, `ctr`, `sm`.
 - After each entry `sync(m,mi)` recomputes Nassau segments.
 
 ### 6.2 Match math
@@ -321,7 +328,7 @@ No secret keys, no custom backend, no analytics. (Firebase web config is public 
 
 **Core:** `render()`, `go(t)`, `save()`, `sheet()`, `shut()`, `lg(msg)`, `esc()`, `lab(mi)` ("Friday match 2"), `calc()` → `{t:[teamPts], pp:[[playerPts]], n}`.
 
-**Scoring:** `live`, `liveView`, `ch`, `sc`, `step`, `pick`, `hole`, `clr1`, `sync`, `seg`, `holes`, `best`, `stk`, `chd`, `gs`, `pidx`, `tee`, `teeOfD`, `chDay`, `setTee`, `setTeeA`, `thru`, `mp2`, `mst`, `mbd`, `projd`, `curDay`, `lineup`, `tg`, `slot`, `setS`.
+**Scoring:** `live`, `liveView` (new), `liveViewOld` (unused), `kp`, `lvAdv`, `lvUndo`, `lvClr`, `lvTab`, `holeGo`, `lvPick`, `lvFollow`, `lvLive`, `lvMore`, `lvScroll`, `lvLast`, `lvFirst`, `lvDone`, `ch`, `sc`, `step`, `pick`, `hole`, `clr1`, `sync`, `seg`, `holes`, `best`, `stk`, `chd`, `gs`, `pidx`, `tee`, `teeOfD`, `chDay`, `setTee`, `setTeeA`, `thru`, `mp2`, `mst`, `mbd`, `projd`, `curDay`, `lineup`, `tg`, `slot`, `setS`.
 
 **Net stats (leaderboard/awards/payouts):** `roundNet(day,ti,pi)` uses each player's **full Course Handicap** (not match-relative strokes); a day with no course loaded scores gross as net. `dayPlayerStats`, `bagStats`, `bagStatsDay`, `dayBoard`, `topBy`.
 
@@ -349,9 +356,10 @@ No secret keys, no custom backend, no analytics. (Firebase web config is public 
 ## 14. Recently added (latest work, roughly newest first)
 - **Firebase live sync:** replaced the claude.ai-only DB with Firestore + anonymous auth, per-player field-level sync, offline cache, event access code (More → Change access code), `README.md`, `firestore.rules`.
 - **Match finalization:** "Submit final score" / "Edit this match anyway" (`m.final`); a match only counts as finished once finalized.
-- **Service worker:** registered; network-first (`rbc-shell-v13`). `<head>` fixed.
+- **Service worker:** registered; network-first (`rbc-shell-v14`). `<head>` fixed.
 - **Plus-handicap fix:** `gs()` now places plus-handicap give-back strokes on the easiest holes (verified against the rule for every stroke count from -54 to +72 on all courses). Affects Justin on several tees and Nils/Bradio/Guad/Belon on Red/Forward tees.
 - **Best Ball payout is now a $140 pot per day** shared by the winning side (pair $70 each, trio $46.67 each; ties split between sides first). Stored amounts migrate once via `payv3` (70 -> 140). Admin label is "Best ball pot". Tested: outright pair, outright trio, two-pair tie, pair+trio tie, three-way tie, two-trio tie.
+- **New live scoring screen** (hole-by-hole, docked keypad, live team scores, Card/Status tabs, follower mode; nav + app header hidden while scoring). See §6.1. Tested: 13/13 matches vs oracle through the keypad path, 25-phone sync, chaos (outage/clock skew/dead listeners), fuzz on all tabs and follow mode, 3v3 layout, dark mode, view-only, no-course warning.
 - **Tabs changed:** Leaderboard replaced History in the bottom bar; History moved into More (second item, after Power rankings).
 - **More menu reordered** (Admin last); **Change access code moved into Admin**; **Rules page has an "Individual awards" section** (event awards Sunshine / Gerry Bertier / Alan Bosley, and round awards The Alpha, The Beta, Birdie Machine, Mr. Consistent, Hot Start, The Closer, Hacker). The awards text is static code in `rules()`, not part of the editable `S.rules`; if an award's logic changes, update it there.
 - **Award rename migration:** `fixNames()` (called at startup and after remote `meta` loads, next to `fixRoster()`) rewrites "Big Dog" / "Just Go Home" in the saved rules text to "The Alpha" / "The Beta" on the phone and in the shared database. Keep it in place.
@@ -408,7 +416,7 @@ No secret keys, no custom backend, no analytics. (Firebase web config is public 
 - **Theme:** Appearance options "Match my device" / Light / Dark. Dark keeps the navy look; Light uses tan/sand.
 - **Bottom tabs:** Teams, Leaderboard, Scoreboard, Matches, More (this exact order; owner changed it Sept 30, 2026). History, Rules & Admin live in More. On phones under 420px wide the tab labels use slightly tighter letter-spacing so "Leaderboard" and "Scoreboard" don't touch.
 - **Scoreboard:** no Nassau boxes/labels, no Upcoming/Finished sections, only current-day points in play; awards Sunshine / Gerry Bertier / Alan Bosley + side games only (no CTP/Long Drive/Birdie Bro/My Chippy).
-- **Live scoring:** stacked-rows scorecard with stroke dots, hole-won row, running status; one-tap score buttons + auto-advance; **no pickup/X button**; max score **double par + 2**.
+- **Live scoring:** hole-by-hole screen (strip, player rows, docked keypad, live team scores, Card and Status tabs, follower mode); see §6.1. **No pickup/X button**; max score **double par + 2**.
 - **Handicaps:** WHS formula; lowest CH in match plays scratch; strokes on hardest holes first.
 - **One match per player per day** (hard block).
 - **Payouts:** only winnings, never buy-ins; ties split; amounts shown beside labels.
