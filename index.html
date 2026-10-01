@@ -380,7 +380,7 @@ function freshStart(b){if(!b.dataset.c){b.dataset.c=1;b.textContent='Tap again t
 function render0(){save();const c=calc();
 $('#lbl').textContent=LB[tab=='o'&&MS?MS:tab];$('#ev').textContent=S.event;
 document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==tab));
-$('#main').innerHTML=noticeHtml()+({a:admin,r:rules,s:()=>stand(c),m:()=>LV?liveView():matches(),h:history,l:leaderboardPage,t:players,o:more})[tab]();if(!(tab=='o'&&MS=='pair')){PAIRC=null;PAIRMSG=''}swipeInit();document.body.classList.toggle('live',!!(LV&&tab=='m'));if(LV&&tab=='m')setTimeout(()=>{ctr();lvScroll()},0)}
+$('#main').innerHTML=noticeHtml()+({a:admin,r:rules,s:()=>stand(c),m:()=>LV?liveView():matches(),h:history,l:leaderboardPage,t:players,o:more})[tab]();if(!(tab=='o'&&MS=='pair')){PAIRC=null;PAIRMSG='';PAIRDAY=null}swipeInit();document.body.classList.toggle('live',!!(LV&&tab=='m'));if(LV&&tab=='m')setTimeout(()=>{ctr();lvScroll()},0)}
 function go(t){tab=t;LV=null;MS=null;PF=null;render();scrollTo(0,0)}
 function curDay(){for(const d of DAYS){const ms=S.matches.filter(m=>m.d==d);if(ms.length&&!ms.every(m=>mFin(m)))return d}return DAYS[DAYS.length-1]}
 function stand(c){const [a,b]=S.teams,tot=S.matches.reduce((x,m)=>x+m.pv.reduce((p,q)=>p+q,0),0),d=Math.abs(c.t[0]-c.t[1]);
@@ -671,7 +671,7 @@ return groups}
 function rbPairPage(){const res=rbAll(),day=PAIRDAY||curDay();
 let h=`<button class="add" style="margin-bottom:12px" onclick="MS='pw';render();scrollTo(0,0)">\u2190 Power Rankings</button>`;
 h+=`<div class="card"><h2>Optimize Pairings \u00b7 ${esc(day)}</h2><p class="mu" style="margin:0">Built from current RBPR for ${esc(day)} only. Nothing changes until you tap Apply. Once ${esc(day)} is finished, come back and hit this again for the next round.</p><div style="display:flex;gap:6px;margin-top:10px">${DAYS.map(d=>`<button class="${d==day?'op go':'op'}" style="flex:1;margin:0;padding:8px 0;text-align:center" onclick="rbPairDay('${d}')">${d}</button>`).join('')}</div></div>${PAIRMSG?`<div class="card" style="padding:10px 14px;border-color:var(--gold)"><p style="margin:0">${esc(PAIRMSG)}</p></div>`:''}`;
-const isSun=day=='Sunday';if(!(PAIRC&&PAIRC.day==day))PAIRC={day,sug:isSun?rbSuggestSingles(res,day):rbSuggestBestBall(res,day)};const sug=PAIRC.sug;
+const isSun=day=='Sunday';const rsig=res.players.map(p=>p.nm+':'+p.rbpr.toFixed(2)).join('|');if(!(PAIRC&&PAIRC.day==day&&PAIRC.sig==rsig))PAIRC={day,sig:rsig,sug:isSun?rbSuggestSingles(res,day):rbSuggestBestBall(res,day)};const sug=PAIRC.sug;
 if(!sug){h+=`<div class="card"><p class="mu" style="margin:0">Need 7 players with handicaps on each team to suggest ${isSun?'singles':'best ball'} pairings.</p></div>`;return h}
 if(!VIEWER)h+=`<div class="card" style="padding:12px 14px"><button class="op go" style="width:100%;margin:0" onclick="rbApplyAll('${day}')">Apply all ${sug.matches.length} matches</button><button class="op" style="width:100%;margin:8px 0 0;text-align:center" onclick="rbRecalc()">Recalculate</button><p class="mu" style="margin:8px 0 0;font-size:13px">The suggestion stays fixed while you apply it, so the matches always fit together. It refuses to change a match that already has scores.</p></div>`;
 sug.matches.forEach((m,i)=>{const sum=g=>g.reduce((s,p)=>s+p.rbpr,0),a=sum(m[0]),b=sum(m[1]);
