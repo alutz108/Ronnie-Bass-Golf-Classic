@@ -1,0 +1,21 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Trip photos: everyone can look at them (so the watch link works without a code).
+    // Any signed-in device (the app signs in anonymously) can add or delete a photo,
+    // but only a real image under 8 MB can be added.
+    match /photos/{year}/{file} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+                            && request.resource.size < 8 * 1024 * 1024
+                            && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null;
+    }
+
+    // Everything else: closed.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
