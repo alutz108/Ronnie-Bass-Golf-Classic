@@ -390,6 +390,13 @@ body.practice header{top:calc(env(safe-area-inset-top,0px) + 26px)}
 .orow3>div{text-align:center}.orow3 small{display:block;font:700 11px 'Barlow',sans-serif;letter-spacing:.06em;color:var(--muted);margin-bottom:3px;text-transform:uppercase}
 .orow3 .opl{width:100%;min-width:0}
 .osg{display:flex;align-items:center;gap:8px;padding:4px 0}.osg b{width:72px;font:700 14px 'Barlow',sans-serif}.osg .opl{flex:1;min-width:0}
+
+.orsn{display:flex;gap:8px;align-items:flex-start;padding:5px 0;font:500 13px/1.3 'Barlow',sans-serif;border-top:1px solid var(--line)}
+.orsn:first-of-type{border-top:0}
+.orsn i{flex:none;width:9px;height:9px;border-radius:50%;margin-top:4px;background:var(--line)}.orsn i.t0{background:var(--red)}.orsn i.t1{background:var(--teal)}
+.orsn span{flex:1;min-width:0}
+.orsn em{flex:none;font:800 12px 'Barlow',sans-serif;font-style:normal;color:var(--muted);text-align:right;max-width:92px}.orsn em.t0{color:var(--redt)}.orsn em.t1{color:var(--tealt)}
+.orsm{margin:2px 0 0;font-size:13px}
 </style></head><body>
 <header><img src="logo.6751ba0b.webp" alt="Ronnie Bass Classic logo">
 <div id="hd"><span class="lbl" id="lbl"></span><h1><span id="ev"></span></h1></div><span id="sy" class="sy"></span></header>
@@ -487,17 +494,53 @@ if(p<pl){q=Math.sqrt(-2*Math.log(p));return(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c
 if(p<=1-pl){q=p-.5;r=q*q;return(((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1)}
 q=Math.sqrt(-2*Math.log(1-p));return-(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)}
 function hdist(d0,n,pa,pb,ph){let D=new Map([[d0,1]]);for(let i=0;i<n;i++){const N=new Map();D.forEach((p,d)=>{N.set(d+1,(N.get(d+1)||0)+p*pa);N.set(d-1,(N.get(d-1)||0)+p*pb);N.set(d,(N.get(d)||0)+p*ph)});D=N}return D}
-function winMatch(m,sA,sB,R0,noFix){const R=R0||holes(m),ph=m.n>1?WIN_PH.bb:WIN_PH.s,exp=1/(1+Math.pow(10,-(sA-sB)*WIN_K/WIN_D)),z=zinv(Math.min(.97,Math.max(.03,exp))),mu=z*Math.sqrt(1-ph)/Math.sqrt(18),pa=(1-ph+mu)/2,pb=(1-ph-mu)/2;
+// ---- More things that move the odds ----
+// On top of the power ratings and the score, the odds now also use: (1) how each player has done on this day of the week in past events,
+// (2) how partners have done together, (3) singles history between the same two players, (4) each player's front nine versus back nine
+// tendency from the earlier rounds of THIS weekend (older years only have round totals, no hole-by-hole scores), and (5) how each player
+// is playing today compared with his handicap pace. Every factor is shrunk toward zero for small samples and capped.
+const WF={DAYW:.03,DAYK:10,DAYCAP:.04,PAIRW:.5,PAIRK:2,PAIRCAP:.06,H2HW:.5,H2HK:2,H2HCAP:.06,HOLEW:.10,NINEK:27,FORMK:9,FORMP:.35,FORMDEV:2};
+const wan=n=>n==='Bradio'?'Brad':n,wmean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0,wclamp=(v,c)=>Math.max(-c,Math.min(c,v)),wexp=(a,b)=>1/(1+Math.pow(10,-(a-b)*WIN_K/WIN_D));
+let WHC=null;
+function winHist(o){if(!o&&WHC)return WHC;const op=o||{},scY=op.sc||[2024,2025,2026],resY=op.res||[2025,2026],sam={},dayAdv={},dayN={},pairs={},h2h={};
+scY.forEach(y=>{const sc=OLD[y];if(!sc)return;for(let k=0;k<3;k++){const rows=sc.filter(r=>r[1+k*2]>0);if(rows.length<4)continue;const med=median(rows.map(r=>r[1+k*2]));rows.forEach(r=>{(sam[r[0]]=sam[r[0]]||[[],[],[]])[k].push(r[1+k*2]-med)})}});
+Object.keys(sam).forEach(n=>{const a=sam[n];dayAdv[n]=[0,1,2].map(k=>{const mine=a[k],oth=[].concat(a[(k+1)%3],a[(k+2)%3]);if(!mine.length||!oth.length)return 0;return mine.length/(mine.length+WF.DAYK)*(wmean(oth)-wmean(mine))});dayN[n]=a.map(x=>x.length)});
+resY.forEach(y=>{const R=RES[y];if(!R)return;R.s.forEach(([t,rows])=>rows.forEach(z=>{const A=z[0].split(' / '),B=z[3].split(' / '),tot=z[1]+z[2];if(!tot)return;const f=z[1]/tot;
+ [[A,B,f],[B,A,1-f]].forEach(([own,opp,ff])=>{if(own.length>=2&&own.length<=3)for(let i=0;i<own.length;i++)for(let j=i+1;j<own.length;j++){const key=[own[i],own[j]].sort().join('|');(pairs[key]=pairs[key]||[]).push({f:ff,own,opp,y,t})}});
+ if(A.length==1&&B.length==1){(h2h[A[0]+'|'+B[0]]=h2h[A[0]+'|'+B[0]]||[]).push({f,y});(h2h[B[0]+'|'+A[0]]=h2h[B[0]+'|'+A[0]]||[]).push({f:1-f,y})}}))});
+const H={dayAdv,dayN,pairs,h2h};if(!o)WHC=H;return H}
+function winNine(day){const di=DAYS.indexOf(day),acc={};
+for(let q=0;q<di;q++){const dd=DAYS[q],rows=[];S.teams.forEach((t,ti)=>t.p.forEach((nm,pi)=>{const r=roundNet(dd,ti,pi);if(!r)return;let sf=0,nf=0,sb=0,nb=0;for(let h=0;h<18;h++){const g=r.gross[h];if(g==null)continue;if(h<9){sf+=g-r.par[h];nf++}else{sb+=g-r.par[h];nb++}}if(nf>=6&&nb>=6)rows.push({n:wan(nm),gap:sb/nb-sf/nf,w:Math.min(nf,nb)})}));
+ if(!rows.length)continue;const fm=wmean(rows.map(r=>r.gap));rows.forEach(r=>{const a=acc[r.n]=acc[r.n]||{s:0,w:0};a.s+=(r.gap-fm)*r.w;a.w+=r.w})}
+const out={};Object.keys(acc).forEach(n=>{const a=acc[n],eF=a.w/(a.w+WF.NINEK)*(a.s/a.w)/2;out[n]=[eF,-eF]});return out}
+function winForm(m,ti,pi){const d=(S.sc[m.d]||{})[ti+'_'+pi],c=COURSE[m.d],ch=chd(m,ti,pi);if(!d||!c||ch==null)return null;let n=0,s=0;for(let h=0;h<18;h++){if(d[h]==null)continue;n++;s+=d[h]-c.par[h]}if(n<3)return null;const dev=wclamp(s/n-ch/18,WF.FORMDEV);return-dev*n/(n+WF.FORMK)}
+function winFactors(m,cx){const di=DAYS.indexOf(m.d),H=winHist(),names=[0,1].map(ti=>m.l[ti].map(pi=>wan(S.teams[ti].p[pi]))),out={day:0,pair:0,h2h:0,nF:0,nB:0,form:0,notes:{}};
+if(!names[0].length||!names[1].length||di<0)return out;const rN=cx.rtN,R=n=>rN[n]==null?50:rN[n],avgR=l=>wmean(l.map(R));
+// 1. this day of the week
+const adv=ti=>wmean(names[ti].map(n=>(H.dayAdv[n]||[0,0,0])[di]));out.day=wclamp(WF.DAYW*(adv(0)-adv(1)),WF.DAYCAP);out.notes.day=[0,1].map(ti=>names[ti].map(n=>({n,v:(H.dayAdv[n]||[0,0,0])[di],k:(H.dayN[n]||[0,0,0])[di]})));
+// 2. partners
+const pf=ti=>{const L=names[ti],tot=L.length*(L.length-1)/2,rec=[];let s=0;for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const e=H.pairs[[L[i],L[j]].sort().join('|')];if(!e||!e.length)continue;const ex=wmean(e.map(r=>r.f-wexp(avgR(r.own),avgR(r.opp))));s+=e.length/(e.length+WF.PAIRK)*ex;rec.push({pair:[L[i],L[j]],w:e.filter(r=>r.f>.5).length,l:e.filter(r=>r.f<.5).length,h:e.filter(r=>r.f==.5).length,n:e.length,e})}return{v:tot?s/tot:0,rec}},p0=pf(0),p1=pf(1);
+out.pair=wclamp(WF.PAIRW*(p0.v-p1.v),WF.PAIRCAP);out.notes.pair=[p0.rec,p1.rec];
+// 3. singles history
+if(names[0].length==1&&names[1].length==1){const e=H.h2h[names[0][0]+'|'+names[1][0]];if(e&&e.length){const ex=wmean(e.map(r=>r.f-wexp(R(names[0][0]),R(names[1][0]))));out.h2h=wclamp(WF.H2HW*e.length/(e.length+WF.H2HK)*ex,WF.H2HCAP);out.notes.h2h=e}}
+// 4. front nine versus back nine, from the earlier days of this weekend
+const NT=cx.nine(m.d),ne=ti=>[wmean(names[ti].map(n=>(NT[n]||[0,0])[0])),wmean(names[ti].map(n=>(NT[n]||[0,0])[1]))];const n0=ne(0),n1=ne(1);out.nF=WF.HOLEW*(n0[0]-n1[0]);out.nB=WF.HOLEW*(n0[1]-n1[1]);out.notes.nine=[0,1].map(ti=>names[ti].map(n=>({n,f:(NT[n]||[0,0])[0],have:!!NT[n]})));
+// 5. today's form against handicap pace
+const fm=ti=>{const v=m.l[ti].map(pi=>winForm(m,ti,pi)).filter(x=>x!=null);return v.length?wmean(v):0};out.form=WF.HOLEW*WF.FORMP*(fm(0)-fm(1));out.notes.form=[0,1].map(ti=>m.l[ti].map(pi=>({n:wan(S.teams[ti].p[pi]),v:winForm(m,ti,pi)})));
+return out}
+const fxSum=(fx,drop)=>fx?{shift:(drop=='day'?0:fx.day)+(drop=='pair'?0:fx.pair)+(drop=='h2h'?0:fx.h2h),hf:(drop=='nine'?0:fx.nF)+(drop=='form'?0:fx.form),hb:(drop=='nine'?0:fx.nB)+(drop=='form'?0:fx.form)}:{shift:0,hf:0,hb:0};
+function winParams(m,sA,sB,fx){const s=fxSum(fx),ph=m.n>1?WIN_PH.bb:WIN_PH.s,base=1/(1+Math.pow(10,-(sA-sB)*WIN_K/WIN_D)),exp=Math.min(.97,Math.max(.03,base+s.shift)),z=zinv(exp),mu0=z*Math.sqrt(1-ph)/Math.sqrt(18),lim=(1-ph)*.9,cl=v=>Math.max(-lim,Math.min(lim,v)),muF=cl(mu0+s.hf),muB=cl(mu0+s.hb);return{ph,exp,base,muF,muB}}
+function winMatch(m,sA,sB,R0,noFix,fx){const R=R0||holes(m),P=winParams(m,sA,sB,fx),ph=P.ph,exp=P.exp,paF=(1-ph+P.muF)/2,pbF=(1-ph-P.muF)/2,paB=(1-ph+P.muB)/2,pbB=(1-ph-P.muB)/2;
 const seg=(a,b)=>{let d=0,rem=0;for(let i=a;i<b;i++){const x=R[i];if(x=='A')d++;else if(x=='B')d--;else if(x==null)rem++}return{d,rem}};
-const F=seg(0,9),B=seg(9,18),FD=hdist(F.d,F.rem,pa,pb,ph),BD=hdist(B.d,B.rem,pa,pb,ph),fix=k=>{if(noFix)return null;const v=m.s[k];return v&&v.w?v.w:null},sg=x=>x>0?'A':x<0?'B':'H',q=(w,pv)=>w=='A'?Math.round(pv*4):w=='H'?Math.round(pv*2):0,out=new Map(),ix={A:0,H:1,B:2},fr=[0,0,0],bk=[0,0,0],ov=[0,0,0];
+const F=seg(0,9),B=seg(9,18),FD=hdist(F.d,F.rem,paF,pbF,ph),BD=hdist(B.d,B.rem,paB,pbB,ph),fix=k=>{if(noFix)return null;const v=m.s[k];return v&&v.w?v.w:null},sg=x=>x>0?'A':x<0?'B':'H',q=(w,pv)=>w=='A'?Math.round(pv*4):w=='H'?Math.round(pv*2):0,out=new Map(),ix={A:0,H:1,B:2},fr=[0,0,0],bk=[0,0,0],ov=[0,0,0];
 FD.forEach((pf,fd)=>BD.forEach((pbk,bd)=>{const w0=fix(0)||sg(fd),w1=fix(1)||sg(bd),w2=fix(2)||sg(fd+bd),v=q(w0,m.pv[0])+q(w1,m.pv[1])+q(w2,m.pv[2]),pp=pf*pbk;out.set(v,(out.get(v)||0)+pp);fr[ix[w0]]+=pp;bk[ix[w1]]+=pp;ov[ix[w2]]+=pp}));
 const T=Math.round(m.pv.reduce((a,b)=>a+b,0)*4),res=[0,0,0];out.forEach((p,v)=>{if(v*2>T)res[0]+=p;else if(v*2==T)res[1]+=p;else res[2]+=p});return{dist:out,exp,res,fr,bk,ov}}
-function winCtx(){const res=rbAll(),rt={},avg=[0,1].map(ti=>{const v=res.players.filter(p=>p.ti==ti).map(p=>p.rbpr);return v.length?v.reduce((a,b)=>a+b,0)/v.length:50});res.players.forEach(p=>{rt[p.ti+'_'+p.pi]=p.rbpr});return{side:(m,ti)=>m.l[ti].length?m.l[ti].reduce((s,pi)=>s+rt[ti+'_'+pi],0)/m.l[ti].length:avg[ti]}}
-function winSeries(m,cx){const R=holes(m),n=thru(m),sA=cx.side(m,0),sB=cx.side(m,1),pts=[];for(let k=0;k<=n;k++){const Rk=R.slice(0,k).concat(Array(18-k).fill(null)),r=winMatch(m,sA,sB,Rk,true).res;pts.push(r[0]+r[1]/2)}return pts}
+function winCtx(){const res=rbAll(),rt={},rtN={},avg=[0,1].map(ti=>{const v=res.players.filter(p=>p.ti==ti).map(p=>p.rbpr);return v.length?v.reduce((a,b)=>a+b,0)/v.length:50});res.players.forEach(p=>{rt[p.ti+'_'+p.pi]=p.rbpr;rtN[wan(p.nm)]=p.rbpr});const nc={},fc=new Map(),cx={rtN,side:(m,ti)=>m.l[ti].length?m.l[ti].reduce((s,pi)=>s+rt[ti+'_'+pi],0)/m.l[ti].length:avg[ti],nine:d=>nc[d]||(nc[d]=winNine(d)),fx:m=>{let f=fc.get(m);if(!f){f=winFactors(m,cx);fc.set(m,f)}return f}};return cx}
+function winSeries(m,cx){const R=holes(m),n=thru(m),sA=cx.side(m,0),sB=cx.side(m,1),fx=cx.fx(m),pts=[];for(let k=0;k<=n;k++){const Rk=R.slice(0,k).concat(Array(18-k).fill(null)),r=winMatch(m,sA,sB,Rk,true,fx).res;pts.push(r[0]+r[1]/2)}return pts}
 function winOdds(){const cx=winCtx(),side=cx.side;
 let tot=0,bank=[0,0],D=new Map([[0,1]]);const exps=[];
 S.matches.forEach(m=>{tot+=m.pv.reduce((a,b)=>a+b,0);m.s.forEach((v,k)=>{if(v&&v.w){const pv=m.pv[k];if(v.w=='H'){bank[0]+=pv/2;bank[1]+=pv/2}else bank[v.w=='A'?0:1]+=pv}});
- const r=winMatch(m,side(m,0),side(m,1));exps.push(r.exp);const N=new Map();D.forEach((p,a)=>r.dist.forEach((q,b)=>{N.set(a+b,(N.get(a+b)||0)+p*q)}));D=N});
+ const r=winMatch(m,side(m,0),side(m,1),null,false,cx.fx(m));exps.push(r.exp);const N=new Map();D.forEach((p,a)=>r.dist.forEach((q,b)=>{N.set(a+b,(N.get(a+b)||0)+p*q)}));D=N});
 const T=Math.round(tot*4);let a=0,t=0,b=0;D.forEach((p,L)=>{if(L*2>T)a+=p;else if(L*2==T)t+=p;else b+=p});
 const u=S.matches.every(m=>m.pv.every(x=>Math.abs(x*2-Math.round(x*2))<1e-9))?.5:.25,thr=Math.floor(tot/2/u+1e-9)*u+u,left=tot-bank[0]-bank[1],need=bank.map(x=>Math.max(0,thr-x));
 return{a,t,b,total:tot,bank,left,need,fin:left<=1e-9,exp:exps}}
@@ -513,14 +556,30 @@ return `<span class="opl ${cls}${p>=.5&&p<.996?' fav':''}${on?(f.d>0?' up':' dn'
 function oddsBox(){try{const o=winOdds(),p=winPct(o),pre=!S.matches.some(m=>m.s.some(x=>x)),tn=ti=>esc(S.teams[ti].n),sh=ti=>esc(S.teams[ti].n.replace(/^Team\s+/i,'')),f=x=>String(+x.toFixed(2));
 const lead=o.fin?(o.a>o.b?0:o.b>o.a?1:-1):(o.a>.995?0:o.b>.995?1:-1),msg=o.fin?(o.a+o.b<.5?'Final: the Ryder Cup ended tied.':'Final: '+sh(o.a>o.b?0:1)+' won the Ryder Cup.'):lead>=0?sh(lead)+' has clinched the Ryder Cup.':'';
 const row=(ti,pr)=>`<div class="otr"><span class="odot t${ti}"></span><span class="onm"><b>${tn(ti)}</b><small>${S.teams[ti].p.map(esc).join(' \u00b7 ')}</small></span>${oPill('e'+ti,pr,ti?'t':'r',sh(ti)+' to win the Ryder Cup')}</div>`;
-return `<div class="ob"><div class="och"><b>Ryder Cup odds</b><span>${o.fin?'Final':pre?'Before the first match':'Updates live'}</span></div>${row(0,o.a)}${row(1,o.b)}<div class="otr tie"><span class="odot"></span><span class="onm"><b>Tie</b></span>${oPill('et',o.t,'m sm','Ryder Cup tied')}</div><div class="wcb" role="img" aria-label="${sh(0)} ${p[0]} percent, tie ${p[1]} percent, ${sh(1)} ${p[2]} percent"><i class="a" style="width:${p[0]}%"></i><i class="t" style="width:${p[1]}%"></i><i class="b" style="width:${p[2]}%"></i></div>${msg?`<p class="mu wcm">${msg}</p>`:`<p class="mu wcm">${sh(0)} has ${f(o.bank[0])} and needs ${f(o.need[0])} more to win \u00b7 ${sh(1)} has ${f(o.bank[1])} and needs ${f(o.need[1])} more \u00b7 ${f(o.left)} points still undecided</p>`}<details class="wcd"><summary>How these odds work</summary><p class="mu">An estimate from the power ratings and how every match stands, like a sportsbook line: both sides of an even match show about \u2212110 because a small margin is built in. Points already won are locked in; each match still to play, or in progress, is simulated hole by hole from where it stands now. The bar under the odds shows the same chances without the margin. For fun only: no real money.</p></details></div>`}catch(e){return ''}}
+return `<div class="ob"><div class="och"><b>Ryder Cup odds</b><span>${o.fin?'Final':pre?'Before the first match':'Updates live'}</span></div>${row(0,o.a)}${row(1,o.b)}<div class="otr tie"><span class="odot"></span><span class="onm"><b>Tie</b></span>${oPill('et',o.t,'m sm','Ryder Cup tied')}</div><div class="wcb" role="img" aria-label="${sh(0)} ${p[0]} percent, tie ${p[1]} percent, ${sh(1)} ${p[2]} percent"><i class="a" style="width:${p[0]}%"></i><i class="t" style="width:${p[1]}%"></i><i class="b" style="width:${p[2]}%"></i></div>${msg?`<p class="mu wcm">${msg}</p>`:`<p class="mu wcm">${sh(0)} has ${f(o.bank[0])} and needs ${f(o.need[0])} more to win \u00b7 ${sh(1)} has ${f(o.bank[1])} and needs ${f(o.need[1])} more \u00b7 ${f(o.left)} points still undecided</p>`}<details class="wcd"><summary>How these odds work</summary><p class="mu">An estimate from the power ratings and how every match stands, like a sportsbook line: both sides of an even match show about \u2212110 because a small margin is built in. Points already won are locked in; each match still to play, or in progress, is simulated hole by hole from where it stands now. Beyond the ratings it also looks at how the players have done on this day of the week before, how partners have done together, singles history between the same two players, front nine versus back nine tendencies from the earlier rounds of this weekend, and how each player is playing today against his handicap pace. Open More odds on a match to see what is moving it. The bar under the odds shows the same chances without the margin. For fun only: no real money.</p></details></div>`}catch(e){return ''}}
+function winReasons(m,cx){const fx=cx.fx(m),sA=cx.side(m,0),sB=cx.side(m,1),res=r=>r.res[0]+r.res[1]/2,e0=res(winMatch(m,sA,sB,null,false,fx)),sh=ti=>S.teams[ti].n.replace(/^Team\s+/i,''),dn={Friday:'Fridays',Saturday:'Saturdays',Sunday:'Sundays'}[m.d],
+no={day:{day:0},pair:{pair:0},h2h:{h2h:0},nine:{nF:0,nB:0},form:{form:0}},eff=k=>(e0-res(winMatch(m,sA,sB,null,false,Object.assign({},fx,no[k]))))*100,L=[],add=(k,text,dp)=>L.push({k,text,dp});
+const nm0=m.l[0].map(pi=>wan(S.teams[0].p[pi])),nm1=m.l[1].map(pi=>wan(S.teams[1].p[pi]));if(!nm0.length||!nm1.length)return L;
+const dv=[].concat(...fx.notes.day).filter(x=>x.k>0&&Math.abs(x.v)>=.3).sort((a,b)=>Math.abs(b.v)-Math.abs(a.v)).slice(0,2);
+if(dv.length)add('day',dv.map(x=>x.n+' has played '+(x.v>0?'better':'worse')+' than usual on '+dn+' ('+(x.v>0?'+':'\u2212')+Math.abs(x.v).toFixed(1)+' strokes, '+x.k+' past round'+(x.k==1?'':'s')+')').join('; '),eff('day'));
+const pr=[].concat(...fx.notes.pair.map((r,ti)=>r.map(x=>Object.assign({ti},x)))).sort((a,b)=>b.n-a.n).slice(0,2);
+if(pr.length)add('pair',pr.map(x=>x.pair.join(' & ')+' ('+sh(x.ti)+') are '+x.w+'\u2013'+x.l+(x.h?'\u2013'+x.h:'')+' as partners in '+x.n+' past match'+(x.n==1?'':'es')+' (latest '+x.e[x.e.length-1].y+')').join('; '),eff('pair'));
+if(fx.notes.h2h){const e=fx.notes.h2h,w=e.filter(r=>r.f>.5).length,l=e.filter(r=>r.f<.5).length,y=e[e.length-1];add('h2h',nm0[0]+' v '+nm1[0]+' in past singles: '+nm0[0]+' is '+w+'\u2013'+l+(e.length-w-l?'\u2013'+(e.length-w-l):'')+', taking '+Math.round(wmean(e.map(r=>r.f))*100)+'% of the points (latest '+y.y+')',eff('h2h'))}
+const nv=[].concat(...fx.notes.nine).filter(x=>x.have).sort((a,b)=>Math.abs(b.f)-Math.abs(a.f));
+if(nv.length&&Math.abs(nv[0].f)>=.01)add('nine',nv.slice(0,2).filter(x=>Math.abs(x.f)>=.01).map(x=>x.n+' is stronger on the '+(x.f>0?'front':'back')+' nine').join('; ')+' (from the earlier rounds this weekend)',eff('nine'));
+else if(!nv.length)add('nine','Front and back nine tendencies start once a round has been played this weekend.',0);
+const fv=[].concat(...fx.notes.form).filter(x=>x.v!=null&&Math.abs(x.v)>=.1).sort((a,b)=>Math.abs(b.v)-Math.abs(a.v)).slice(0,2);
+if(fv.length)add('form',fv.map(x=>x.n+' is playing '+(x.v>0?'under':'over')+' his handicap pace today ('+Math.abs(x.v).toFixed(1)+' a hole)').join('; '),eff('form'));
+return L}
+function reasonsHtml(m,cx){const L=winReasons(m,cx),sh=ti=>esc(S.teams[ti].n.replace(/^Team\s+/i,''));if(!L.length)return `<p class="mu orsm">Nothing beyond the ratings and the score yet.</p>`;
+return L.map(r=>{const fav=r.dp>=0?0:1,none=Math.abs(r.dp)<.1;return `<div class="orsn"><i class="${none?'':'t'+fav}"></i><span>${esc(r.text)}</span><em class="${none?'':'t'+fav}">${none?'little effect':(r.dp>0?'+':'')+r.dp.toFixed(1)+'% '+sh(fav)}</em></div>`}).join('')}
 const oddsTog=mi=>{ODDSOPEN[mi]=!ODDSOPEN[mi];render()};
-function matchOdds(m,mi,cx){const sA=cx.side(m,0),sB=cx.side(m,1),r=winMatch(m,sA,sB),a=sh=>esc(S.teams[0].n.replace(/^Team\s+/i,'')),b=esc(S.teams[1].n.replace(/^Team\s+/i,'')),A=a(),pl=(k,pr,c,l)=>oPill('m'+mi+k,pr,c,l),open=!!ODDSOPEN[mi];
+function matchOdds(m,mi,cx){const sA=cx.side(m,0),sB=cx.side(m,1),fxm=cx.fx(m),r=winMatch(m,sA,sB,null,false,fxm),a=sh=>esc(S.teams[0].n.replace(/^Team\s+/i,'')),b=esc(S.teams[1].n.replace(/^Team\s+/i,'')),A=a(),pl=(k,pr,c,l)=>oPill('m'+mi+k,pr,c,l),open=!!ODDSOPEN[mi];
 const row=`<div class="omo"><span>${pl('a',r.res[0],'r',A+' to win the match')}</span><small>TO WIN</small><span>${pl('b',r.res[2],'t',b+' to win the match')}</span></div><div class="omore"><button onclick="oddsTog(${mi})" aria-expanded="${open}">${open?'Hide odds':'More odds'} \u203a</button></div>`;
 if(!open)return row;
 const seg=(l,v,k)=>`<div class="osg"><b>${l}</b>${pl(k+'a',v[0],'r sm',A+' '+l)}${pl(k+'d',v[1],'m sm','Halved '+l)}${pl(k+'b',v[2],'t sm',b+' '+l)}</div>`;
 const pts=winSeries(m,cx),n=pts.length-1,W=300,H=46,xs=i=>4+i*(W-8)/Math.max(1,n),ys=p=>H-4-p*(H-8),d=pts.map((p,i)=>(i?'L':'M')+xs(i).toFixed(1)+' '+ys(p).toFixed(1)).join(' ');
-return row+`<div class="oex"><h4>Match result</h4><div class="orow3"><div><small>${A}</small>${pl('x',r.res[0],'r sm',A+' to win the match')}</div><div><small>Draw</small>${pl('d',r.res[1],'m sm','Match halved')}</div><div><small>${b}</small>${pl('y',r.res[2],'t sm',b+' to win the match')}</div></div>${seg('Front 9',r.fr,'f')}${seg('Back 9',r.bk,'k')}${seg('Overall',r.ov,'o')}<h4 style="margin-top:10px">${A} win chance after each hole</h4><svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="${A} win chance after each hole"><line x1="4" x2="${W-4}" y1="${ys(.5)}" y2="${ys(.5)}" stroke="var(--line)" stroke-dasharray="3 3"/><path d="${d}" fill="none" stroke="var(--redt)" stroke-width="2.5" stroke-linejoin="round"/><circle cx="${xs(n).toFixed(1)}" cy="${ys(pts[n]).toFixed(1)}" r="4" fill="var(--redt)"/></svg></div>`}
+return row+`<div class="oex"><h4>Match result</h4><div class="orow3"><div><small>${A}</small>${pl('x',r.res[0],'r sm',A+' to win the match')}</div><div><small>Draw</small>${pl('d',r.res[1],'m sm','Match halved')}</div><div><small>${b}</small>${pl('y',r.res[2],'t sm',b+' to win the match')}</div></div>${seg('Front 9',r.fr,'f')}${seg('Back 9',r.bk,'k')}${seg('Overall',r.ov,'o')}<h4 style="margin-top:10px">${A} win chance after each hole</h4><svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="${A} win chance after each hole"><line x1="4" x2="${W-4}" y1="${ys(.5)}" y2="${ys(.5)}" stroke="var(--line)" stroke-dasharray="3 3"/><path d="${d}" fill="none" stroke="var(--redt)" stroke-width="2.5" stroke-linejoin="round"/><circle cx="${xs(n).toFixed(1)}" cy="${ys(pts[n]).toFixed(1)}" r="4" fill="var(--redt)"/></svg><h4 style="margin-top:10px">What else is moving this line</h4>${reasonsHtml(m,cx)}</div>`}
 // ---- Shareable recap cards (PNG pictures drawn on a canvas): one per day, plus a final card once the weekend is decided ----
 const RCW=1080,RCH=1350,RCDAYS={Friday:'FRIDAY',Saturday:'SATURDAY',Sunday:'SUNDAY'};
 function recapDays(){return DAYS.filter(d=>S.matches.some(m=>m.d==d&&mFin(m)))}
@@ -600,7 +659,7 @@ const EVENT_YEAR=2027;let ARCY=EVENT_YEAR;
 const arcDate=ts=>{try{return new Date(ts).toLocaleDateString([],{month:'long',day:'numeric',year:'numeric'})}catch(e){return ''}};
 function buildArchive(){const AL={Bradio:'Brad'},t=calc().t,win=t[0]==t[1]?-1:t[0]>t[1]?0:1;payoutsPage();const aw=awardsAll(),res=rbAll(),nm=(ti,pi)=>S.teams[ti].p[pi];
 const days=DAYS.map(day=>{const cs=COURSE[day],ms=S.matches.filter(m=>m.d==day),rounds=[];
- ms.forEach(m=>[0,1].forEach(ti=>m.l[ti].forEach(pi=>{const d=dayPlayerStats(day,ti,pi),r=roundNet(day,ti,pi);if(d&&r&&d.holesN==18)rounds.push({n:nm(ti,pi),ti,gross:r.gross.reduce((a,b)=>a+b,0),net:d.totalNet,tee:tee(m,ti,pi)})})));
+ ms.forEach(m=>[0,1].forEach(ti=>m.l[ti].forEach(pi=>{const d=dayPlayerStats(day,ti,pi),r=roundNet(day,ti,pi);if(d&&r&&d.holesN==18)rounds.push({n:nm(ti,pi),ti,gross:r.gross.reduce((a,b)=>a+b,0),net:d.totalNet,tee:tee(m,ti,pi),gf:r.gross.slice(0,9).reduce((a,b)=>a+b,0),gb:r.gross.slice(9).reduce((a,b)=>a+b,0),pf:r.par.slice(0,9).reduce((a,b)=>a+b,0),pb:r.par.slice(9).reduce((a,b)=>a+b,0)})})));
  return{day,course:cs?cs.n:'',loc:cs?cs.loc:'',pts:dayPts(day),matches:ms.map(m=>({fmt:m.f+' '+m.n+'v'+m.n,names:[m.l[0].map(pi=>nm(0,pi)),m.l[1].map(pi=>nm(1,pi))],pv:m.pv.slice(),segs:m.s.map(x=>x&&x.w||null),res:mp2(m)})),rounds}});
 const awards={};Object.keys(aw).forEach(n=>Object.keys(aw[n]).forEach(id=>{const L=aw[n][id].filter(w=>w.y=='2027').map(w=>({day:w.day,note:w.note}));if(L.length){(awards[n]=awards[n]||{})[id]=L}}));
 const pay={};Object.entries(PAYL).forEach(([k,v])=>{const[ti,pi]=k.split('_').map(Number);if(v>0)pay[nm(ti,pi)]=Math.round(v*100)/100});
