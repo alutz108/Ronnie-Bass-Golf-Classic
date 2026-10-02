@@ -344,31 +344,7 @@ body.practice header{top:calc(env(safe-area-inset-top,0px) + 26px)}
 .lvchb span{display:block;font:800 18px 'Barlow Condensed',sans-serif;letter-spacing:.03em;text-transform:uppercase}
 .lvchb small{display:block;font:500 13px 'Barlow',sans-serif;color:var(--muted)}
 .lvchw{all:unset;box-sizing:border-box;cursor:pointer;display:block;width:100%;text-align:center;padding:10px;border-radius:12px;border:1.5px dashed var(--line);font:700 14px 'Barlow',sans-serif;color:var(--muted)}
-.wc{margin:0 0 14px}
-.wch{display:flex;justify-content:space-between;align-items:baseline;margin:0 2px 6px}
-.wch b{font:800 15px 'Barlow Condensed',sans-serif;letter-spacing:.14em;text-transform:uppercase}
-.wch span{font:500 13px 'Barlow',sans-serif;color:var(--muted)}
-.wcb{display:flex;height:16px;border-radius:8px;overflow:hidden;background:var(--line)}
-.wcb i{display:block;height:100%}.wcb i.a{background:var(--red)}.wcb i.t{background:#b9a98a}.wcb i.b{background:var(--teal)}
-.wcl{display:flex;justify-content:space-between;gap:8px;margin:6px 2px 0;font:500 14px 'Barlow',sans-serif}
-.wcl b{font:800 22px 'Barlow Condensed',sans-serif}
-.wcm{margin:6px 2px 0;font-size:13px}
-.wcd{margin:6px 2px 0;font-size:13px}.wcd summary{cursor:pointer;color:var(--tealt);font-weight:700}.wcd p{margin:6px 0 0}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
-.ob{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:12px 12px 10px;margin:0 0 14px}
-.och{display:flex;justify-content:space-between;align-items:baseline;margin:0 2px 6px}
-.och b{font:800 15px 'Barlow Condensed',sans-serif;letter-spacing:.14em;text-transform:uppercase}
-.och span{font:500 13px 'Barlow',sans-serif;color:var(--muted)}
-.otr{display:flex;align-items:center;gap:10px;min-height:56px;padding:6px 0}
-.otr+.otr{border-top:1px solid var(--line)}
-.otr.tie{min-height:44px}
-.odot{width:10px;height:34px;border-radius:5px;flex:none;background:#b9a98a}.odot.t0{background:var(--red)}.odot.t1{background:var(--teal)}
-.otr.tie .odot{height:22px}
-.onm{flex:1;min-width:0;line-height:1.1}
-.onm b{display:block;font:800 19px 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.03em}
-.onm small{display:block;font:500 12px 'Barlow',sans-serif;color:var(--muted)}
-.otr.tie .onm b{font-size:16px}
 .opl{box-sizing:border-box;flex:none;min-width:84px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:5px;font:800 22px 'Barlow Condensed',sans-serif;letter-spacing:.02em;color:#fff;background:var(--line)}
 .opl.r{background:var(--red)}.opl.t{background:var(--teal)}.opl.m{background:var(--line);color:var(--ink)}
 .opl.sm{min-width:70px;height:34px;font-size:18px;border-radius:10px}
@@ -397,6 +373,10 @@ body.practice header{top:calc(env(safe-area-inset-top,0px) + 26px)}
 .orsn span{flex:1;min-width:0}
 .orsn em{flex:none;font:800 12px 'Barlow',sans-serif;font-style:normal;color:var(--muted);text-align:right;max-width:92px}.orsn em.t0{color:var(--redt)}.orsn em.t1{color:var(--tealt)}
 .orsm{margin:2px 0 0;font-size:13px}
+.obx{display:grid;grid-template-columns:1fr 84px 1fr;gap:6px;align-items:center;margin:0 0 14px}
+.obx .opl{width:100%;min-width:0;height:48px}
+.obc{text-align:center;font:800 11px 'Barlow Condensed',sans-serif;letter-spacing:.14em;color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 </style></head><body>
 <header><img src="logo.6751ba0b.webp" alt="Ronnie Bass Classic logo">
 <div id="hd"><span class="lbl" id="lbl"></span><h1><span id="ev"></span></h1></div><span id="sy" class="sy"></span></header>
@@ -545,7 +525,6 @@ const T=Math.round(tot*4);let a=0,t=0,b=0;D.forEach((p,L)=>{if(L*2>T)a+=p;else i
 const u=S.matches.every(m=>m.pv.every(x=>Math.abs(x*2-Math.round(x*2))<1e-9))?.5:.25,thr=Math.floor(tot/2/u+1e-9)*u+u,left=tot-bank[0]-bank[1],need=bank.map(x=>Math.max(0,thr-x));
 return{a,t,b,total:tot,bank,left,need,fin:left<=1e-9,exp:exps}}
 function winPct(o){const v=[o.a,o.t,o.b].map(x=>x*100),f=v.map(Math.floor);let r=100-f.reduce((x,y)=>x+y,0);v.map((x,i)=>[x-f[i],i]).sort((x,y)=>y[0]-x[0]).forEach(([_,i])=>{if(r>0){f[i]++;r--}});return f}
-const pctTxt=(i,p)=>i==0&&p>0?'<1%':i==100&&p<1?'>99%':i+'%';
 const ODD_VIG=.045; // sportsbook-style margin: both sides of an even match show about -110
 function usOdds(p){if(p<=.004)return 'OFF';if(p>=.996)return '\u2713';const q=Math.min(.985,Math.max(.012,p*(1+ODD_VIG))),rd=x=>{const s=x>=1000?100:x>=300?25:5;return Math.round(x/s)*s};
 if(q>=.5)return '\u2212'+Math.min(5000,Math.max(100,rd(100*q/(1-q))));return '+'+Math.max(100,rd(100*(1-q)/q))}
@@ -553,10 +532,8 @@ const OP={},OF={};let ODT=0,OFT=0,ODDSOPEN={},WCX=null;
 function oPill(key,p,cls,label){const o=OP[key];OP[key]=p;if(o!==undefined&&Math.abs(o-p)>.002)OF[key]={d:p>o?1:-1,t:Date.now()};const f=OF[key],age=f?Date.now()-f.t:1e9,on=age<9000;
 if(on){OFT=Math.max(OFT,f.t);clearTimeout(ODT);ODT=setTimeout(()=>{ODT=0;if(tab=='s')render()},Math.max(60,OFT+9100-Date.now()))}
 return `<span class="opl ${cls}${p>=.5&&p<.996?' fav':''}${on?(f.d>0?' up':' dn'):''}${age<2000?' an':''}" role="img" aria-label="${esc(label)}, odds ${usOdds(p)}${on?(f.d>0?', getting shorter':', getting longer'):''}">${usOdds(p)}${on?`<i>${f.d>0?'\u25b2':'\u25bc'}</i>`:''}</span>`}
-function oddsBox(){try{const o=winOdds(),p=winPct(o),pre=!S.matches.some(m=>m.s.some(x=>x)),tn=ti=>esc(S.teams[ti].n),sh=ti=>esc(S.teams[ti].n.replace(/^Team\s+/i,'')),f=x=>String(+x.toFixed(2));
-const lead=o.fin?(o.a>o.b?0:o.b>o.a?1:-1):(o.a>.995?0:o.b>.995?1:-1),msg=o.fin?(o.a+o.b<.5?'Final: the Ryder Cup ended tied.':'Final: '+sh(o.a>o.b?0:1)+' won the Ryder Cup.'):lead>=0?sh(lead)+' has clinched the Ryder Cup.':'';
-const row=(ti,pr)=>`<div class="otr"><span class="odot t${ti}"></span><span class="onm"><b>${tn(ti)}</b><small>${S.teams[ti].p.map(esc).join(' \u00b7 ')}</small></span>${oPill('e'+ti,pr,ti?'t':'r',sh(ti)+' to win the Ryder Cup')}</div>`;
-return `<div class="ob"><div class="och"><b>Ryder Cup odds</b><span>${o.fin?'Final':pre?'Before the first match':'Updates live'}</span></div>${row(0,o.a)}${row(1,o.b)}<div class="otr tie"><span class="odot"></span><span class="onm"><b>Tie</b></span>${oPill('et',o.t,'m sm','Ryder Cup tied')}</div><div class="wcb" role="img" aria-label="${sh(0)} ${p[0]} percent, tie ${p[1]} percent, ${sh(1)} ${p[2]} percent"><i class="a" style="width:${p[0]}%"></i><i class="t" style="width:${p[1]}%"></i><i class="b" style="width:${p[2]}%"></i></div>${msg?`<p class="mu wcm">${msg}</p>`:`<p class="mu wcm">${sh(0)} has ${f(o.bank[0])} and needs ${f(o.need[0])} more to win \u00b7 ${sh(1)} has ${f(o.bank[1])} and needs ${f(o.need[1])} more \u00b7 ${f(o.left)} points still undecided</p>`}<details class="wcd"><summary>How these odds work</summary><p class="mu">An estimate from the power ratings and how every match stands, like a sportsbook line: both sides of an even match show about \u2212110 because a small margin is built in. Points already won are locked in; each match still to play, or in progress, is simulated hole by hole from where it stands now. Beyond the ratings it also looks at how the players have done on this day of the week before, how partners have done together, singles history between the same two players, front nine versus back nine tendencies from the earlier rounds of this weekend, and how each player is playing today against his handicap pace. Open More odds on a match to see what is moving it. The bar under the odds shows the same chances without the margin. For fun only: no real money.</p></details></div>`}catch(e){return ''}}
+function oddsBox(){try{const o=winOdds(),sh=ti=>esc(S.teams[ti].n.replace(/^Team\s+/i,''));
+return `<div class="obx"><div>${oPill('e0',o.a,'r',sh(0)+' to win the Ryder Cup')}</div><div class="obc">WIN ODDS</div><div>${oPill('e1',o.b,'t',sh(1)+' to win the Ryder Cup')}</div></div>`}catch(e){return ''}}
 function winReasons(m,cx){const fx=cx.fx(m),sA=cx.side(m,0),sB=cx.side(m,1),res=r=>r.res[0]+r.res[1]/2,e0=res(winMatch(m,sA,sB,null,false,fx)),sh=ti=>S.teams[ti].n.replace(/^Team\s+/i,''),dn={Friday:'Fridays',Saturday:'Saturdays',Sunday:'Sundays'}[m.d],
 no={day:{day:0},pair:{pair:0},h2h:{h2h:0},nine:{nF:0,nB:0},form:{form:0}},eff=k=>(e0-res(winMatch(m,sA,sB,null,false,Object.assign({},fx,no[k]))))*100,L=[],add=(k,text,dp)=>L.push({k,text,dp});
 const nm0=m.l[0].map(pi=>wan(S.teams[0].p[pi])),nm1=m.l[1].map(pi=>wan(S.teams[1].p[pi]));if(!nm0.length||!nm1.length)return L;
