@@ -356,7 +356,7 @@ body.practice header{top:calc(env(safe-area-inset-top,0px) + 26px)}
 .wcd{margin:6px 2px 0;font-size:13px}.wcd summary{cursor:pointer;color:var(--tealt);font-weight:700}.wcd p{margin:6px 0 0}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 </style></head><body>
-<header><img src="img/logo.6751ba0b.webp" alt="Ronnie Bass Classic logo" onerror="this.style.visibility='hidden'">
+<header><img src="logo.6751ba0b.webp" alt="Ronnie Bass Classic logo">
 <div id="hd"><span class="lbl" id="lbl"></span><h1><span id="ev"></span></h1></div><span id="sy" class="sy"></span></header>
 <main id="main"></main>
 <nav><button data-t="t" onclick="go('t')">Teams</button><button data-t="l" onclick="go('l')">Leaderboard</button><button data-t="s" onclick="go('s')">Scoreboard</button><button data-t="m" onclick="go('m')">Matches</button><button data-t="o" onclick="go('o')">More</button></nav>
@@ -373,6 +373,11 @@ const BUILD=24; // bump together with CACHE in sw.js on every release; a phone r
 let UPDREADY=false,STALE=false,DENIED=false,RRDEF=false,PENDM={},FRESH=false,KNOWNB=0,LSET=null,SMSG='',PAIRC=null,PAIRDAY=null,PAIRMSG='';
 const HELD={};
 const VIEWER=(()=>{try{if(PRACTICE)return false;const s=location.search,w=/[?&]watch(=|&|$)/.test(s)||location.hash=='#watch';if(/[?&]scorer(=|&|$)/.test(s))localStorage.removeItem('rbc_watch');else if(w)localStorage.setItem('rbc_watch','1');return !/[?&]scorer(=|&|$)/.test(s)&&(w||localStorage.getItem('rbc_watch')=='1')}catch(e){return false}})(),roBase=()=>VIEWER||SY=='ro'||STALE,isRO=()=>roBase()||!!(typeof S==='object'&&S&&S.closed);
+const picAlt=s=>/^img\//.test(s)?s.slice(4):'img/'+s;
+document.addEventListener('error',e=>{const el=e.target;if(!el||el.tagName!=='IMG')return;const s=el.getAttribute('src')||'';if(!/\.(webp|jpe?g|png)$/i.test(s)||/^(data:|blob:|https?:)/.test(s))return;
+if(!el.dataset.pt){el.dataset.pt='1';el.setAttribute('src',picAlt(s));return}
+if(el.dataset.ti!==undefined)avErr(el);else el.style.visibility='hidden'},true);
+try{document.querySelectorAll('img').forEach(i=>{if(i.complete&&i.naturalWidth===0&&i.getAttribute('src'))i.dispatchEvent(new Event('error'))})}catch(e){} // the header picture may have failed before this script ran
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const RS=[{p:['Lutz','Bryce','Tim','Nils','Bradio','Brett','Bill'],h:['18.5','12.1','12','6','6.1','27','33.4']},{p:['Guad','Justin','Belon','Mannone','Bustin','Weidaw','Fogel'],h:['6','1.2','7','19','18','45','22.7']}];
 const mk=()=>{const P=k=>Array.from({length:7},(_,i)=>'Player '+(k*7+i+1)),M=[],E=()=>Array(7).fill('');
@@ -410,7 +415,7 @@ if(S.teams)S.teams.forEach(t=>{t.p=t.p.map(n=>typeof n==='string'&&/^\s*Schenk\s
 function fixRoster(){S.teams.forEach((t,i)=>{if(t.p.length==7&&t.p.every(x=>/^Player \d+$/.test(x))){t.p=[...RS[i].p];t.h=[...RS[i].h]}})}
 fixRoster();fixNames();
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}pa()};
-const TL=['img/team27-lutz.18e04487.webp','img/team27-guad.b461fa84.webp'];
+const TL=['team27-lutz.18e04487.webp','team27-guad.b461fa84.webp'];
 const DAYS=['Friday','Saturday','Sunday'],SEG=['Front 9','Back 9','Overall'],fr=x=>x==.5?'½':x,TT={ctp:'Closest to Pin',ld:'Long Drive',bb:'Birdie Bro',mc:'My Chippy'};
 const C=i=>i?'B':'A',V=i=>i?'teal':'red';
 function calc(){const t=[0,0],pp=S.teams.map(x=>x.p.map(()=>0));let n=0;
@@ -488,7 +493,7 @@ payoutsPage();const lb2=Object.entries(PAYL).map(([k,v])=>{const[ti,pi]=k.split(
 const best=(id,fn)=>{const r=wins(id);if(!r.length)return null;const key=w=>parseFloat(String(w.note).replace(/[^0-9.-]/g,''));const v=r.map(key).filter(x=>!isNaN(x));if(!v.length)return r[0];const b=Math.min(...v);return r.find(w=>key(w)==b)};
 return Object.assign(base,{final:recapFinalOk(),win,total:t,days:DAYS.map(d=>({day:d,pts:dayPts(d)})),sun:wins('sun'),ger:wins('ger'),alan:wins('alan'),lowGross:best('med'),lowNet:best('alp'),birdie:wins('bir').sort((a,b)=>parseInt(b.note)-parseInt(a.note)).slice(0,1),money:lb2.slice(0,3),champs:win<0?[]:S.teams[win].p.slice()})}
 function rcFont(w,s,f){return w+' '+s+'px '+(f=='b'?"'Barlow',sans-serif":"'Barlow Condensed','Barlow',sans-serif")}
-function rcLoad(src){return new Promise(r=>{if(!src)return r(null);const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src})}
+function rcLoad(src){return new Promise(r=>{if(!src)return r(null);let tried=!/^(img\/)?[A-Za-z0-9._-]+\.(webp|jpe?g|png)$/.test(src);const i=new Image();i.onload=()=>r(i);i.onerror=()=>{if(!tried){tried=true;i.src=picAlt(src)}else r(null)};i.src=src})}
 function rcRR(c,x,y,w,h,r,fill,stroke,lw){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();if(fill){c.fillStyle=fill;c.fill()}if(stroke){c.strokeStyle=stroke;c.lineWidth=lw||2;c.stroke()}}
 function rcT(c,txt,x,y,font,col,al,maxW){c.font=font;c.fillStyle=col;c.textAlign=al||'left';c.textBaseline='alphabetic';let s=String(txt);if(maxW&&c.measureText(s).width>maxW){const m=/(\d+)px/.exec(font),sz=+m[1];let k=sz;while(k>14&&c.measureText(s).width>maxW){k-=2;c.font=font.replace(/\d+px/,k+'px')}while(s.length>2&&c.measureText(s).width>maxW)s=s.slice(0,-2);}c.fillText(s,x,y)}
 function rcPts(x){x=Math.round(x*4)/4;return x==.5?'\u00bd':String(x)}
@@ -1532,8 +1537,8 @@ return `<div class="sec">Team awards</div><div style="display:grid;gap:10px">${c
 const CRS={2026:['Rum Pointe','Lighthouse Sound','Eagles Landing'],2025:['Glen Riddle','Baywood Greens','River Run'],2024:['Baywood Greens','Rum Pointe','Man O War']};
 const OLD={2026:SC26,2025:SC25,2024:SC24};
 const RES={2026:{f:[16,20],s:[['Friday · Best Ball',[['Lutz / Brett',1.5,.5,'Weidaw / Mannone'],['Bill / Nils',.5,1.5,'Guad / Belon'],['Brad / Tim',2,0,'Justin / Bustin']],'Rum Pointe'],['Saturday · Best Ball',[['Lutz / Bill',1,1,'Mannone / Weidaw'],['Brad / Nils',0,2,'Justin / Belon'],['Brett / Tim',1,1,'Guad / Bustin']],'Lighthouse Sound'],['Sunday · Match Play',[['Lutz',0,4,'Bustin'],['Brett',3.5,.5,'Mannone'],['Bill',3,1,'Weidaw'],['Brad',0,4,'Belon'],['Nils',3.5,.5,'Guad'],['Tim',0,4,'Justin']],'Eagles Landing']]},2025:{f:[7,10],s:[['Friday · Stableford',[['Brad / Nils / Bryce / Lutz / Bill',0,2.5,'Justin / Guad / Bustin / Mannone / Weidaw']],'Glen Riddle','Team Guad swept all three segments (front, back, overall) and added a 0.5 pt bonus for the lowest individual score of the round.'],['Saturday · Best Ball',[['Bryce / Lutz',2,0,'Justin / Bustin'],['Brad / Nils / Bill',.25,2.25,'Guad / Mannone / Weidaw']],'Baywood Greens'],['Sunday · Match Play',[['Bryce',0,2,'Bustin'],['Nils',1,1,'Justin'],['Brad',1.5,.5,'Guad'],['Bill',1.75,.25,'Weidaw'],['Lutz',.5,1.5,'Mannone']],'River Run']]}};
-const TL25=['img/team25-lutz.362c3286.webp','img/team25-guad.b89f2d08.webp'];
-const TL26=['img/team26-lutz.923efae1.webp','img/team26-guad.0321b878.webp'];
+const TL25=['team25-lutz.362c3286.webp','team25-guad.b89f2d08.webp'];
+const TL26=['team26-lutz.923efae1.webp','team26-guad.0321b878.webp'];
 function res(y){const r=RES[y];if(!r)return '';const LG=y==2026?TL26:y==2025?TL25:TL;
 let x=`<div class="hero" style="margin-bottom:14px"><span class="lbl" style="margin-bottom:8px">${y} final</span><div class="row"><div class="tm"><img class="tl" src="${LG[0]}" alt=""><b>Team Lutz</b><span>${r.f[0]}</span></div><div class="tm r"><img class="tl" src="${LG[1]}" alt=""><b>Team Guad</b><span>${r.f[1]}</span></div></div><p>${r.f[1]>r.f[0]?'Team Guad':'Team Lutz'} wins ${y}</p></div>`;
 r.s.forEach(([t,rows,cr,note])=>{let a=0,b=0;rows.forEach(z=>{a+=z[1];b+=z[2]});
@@ -1563,12 +1568,12 @@ function projd(){const p=[0,0];S.matches.forEach(m=>{const g=seg(m);m.s.forEach(
 function mbd(m,fin){if(fin){const[a,b]=mp2(m);return a==b?{c:'t',t:'TIED'}:{c:a>b?'a':'b',t:Math.max(a,b)+'–'+Math.min(a,b)}}
 const g=seg(m)[2],u=g.a-g.b;return u?{c:u>0?'a':'b',t:Math.abs(u)+'UP'}:{c:'t',t:thru(m)?'TIED':'—'}}
 const mlab=m=>m.n==1?'Singles Match':m.n==2?'Four-Ball Match':'Best Ball Match';
-const SAFEIMG=u=>typeof u==='string'&&(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(u)||/^https:\/\/firebasestorage\.googleapis\.com\/[A-Za-z0-9._~:\/?#@!$&()*+,;=%-]+$/.test(u)||/^img\/[A-Za-z0-9._-]+$/.test(u))?u:'';
+const SAFEIMG=u=>typeof u==='string'&&(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(u)||/^https:\/\/firebasestorage\.googleapis\.com\/[A-Za-z0-9._~:\/?#@!$&()*+,;=%-]+$/.test(u)||/^(img\/)?[A-Za-z0-9._-]+\.(webp|jpe?g|png)$/.test(u))?u:'';
 const cleanPhoto=(id,d)=>{if(!/^[A-Za-z0-9_-]{1,40}$/.test(id)||!d)return null;return{id,year:Number.isInteger(d.year)?d.year:0,ts:+d.ts||0,by:String(d.by||'').slice(0,30),url:SAFEIMG(d.url),img:SAFEIMG(d.img),thumb:SAFEIMG(d.thumb),path:/^photos\/[0-9]+\/[A-Za-z0-9_.-]+$/.test(d.path||'')?d.path:''}};
 let PPICS={};
 try{PPICS=JSON.parse(localStorage.getItem('rbc_ppics_v1')||'{}')}catch(e){PPICS={}}
 function savePPics(){try{localStorage.setItem('rbc_ppics_v1',JSON.stringify(PPICS))}catch(e){}}
-const DEFPICS={Belon:'img/p-Belon.97c024ec.jpg',Weidaw:'img/p-Weidaw.557054e8.jpg',Justin:'img/p-Justin.746be0c3.jpg',Bradio:'img/p-Bradio.e010210c.jpg',Fogel:'img/p-Fogel.e644c142.jpg',Bustin:'img/p-Bustin.a8928a2b.jpg',Brett:'img/p-Brett.b1d385f2.jpg',Bill:'img/p-Bill.d32c03e1.jpg',Tim:'img/p-Tim.3f1385c3.jpg',Guad:'img/p-Guad.fb1519e2.jpg',Nils:'img/p-Nils.847990b7.jpg',Bryce:'img/p-Bryce.2b417b40.jpg',Lutz:'img/p-Lutz.327f618d.jpg',Mannone:'img/p-Mannone.6add4de8.jpg'};
+const DEFPICS={Belon:'p-Belon.97c024ec.jpg',Weidaw:'p-Weidaw.557054e8.jpg',Justin:'p-Justin.746be0c3.jpg',Bradio:'p-Bradio.e010210c.jpg',Fogel:'p-Fogel.e644c142.jpg',Bustin:'p-Bustin.a8928a2b.jpg',Brett:'p-Brett.b1d385f2.jpg',Bill:'p-Bill.d32c03e1.jpg',Tim:'p-Tim.3f1385c3.jpg',Guad:'p-Guad.fb1519e2.jpg',Nils:'p-Nils.847990b7.jpg',Bryce:'p-Bryce.2b417b40.jpg',Lutz:'p-Lutz.327f618d.jpg',Mannone:'p-Mannone.6add4de8.jpg'};
 function seedPics(){let ch=false;S.teams.forEach((t,ti)=>t.p.forEach((n,pi)=>{const k=ti+'_'+pi;if(DEFPICS[n]&&!PPICS[k]){PPICS[k]=DEFPICS[n];ch=true}}));if(ch)savePPics()}
 seedPics();
 function setPhoto(ti,pi,durl){PPICS[ti+'_'+pi]=durl;savePPics();if(DB){DB.collection('playerphotos').doc(ti+'_'+pi).set({img:durl}).catch(()=>{})}render()}
@@ -1580,7 +1585,7 @@ function reindexPPics(ti,pi){const t=S.teams[ti],n={};Object.keys(PPICS).forEach
 function avBubble(ti,name,size){return `<span class="av ${ti?'b':'a'}" style="display:inline-grid;width:${size}px;height:${size}px;font-size:${Math.max(9,Math.round(size*0.4))}px;margin-right:6px;vertical-align:middle" >${esc((name||'?').slice(0,2).toUpperCase())}</span>`}
 function avErr(el){try{el.outerHTML=avBubble(+el.dataset.ti,el.dataset.n,+el.dataset.s)}catch(e){}} // a headshot file that did not load turns into the initials bubble
 function avatar(ti,pi,name,size){const img=PPICS[ti+'_'+pi];
-return img?`<img src="${esc(img)}" data-ti="${ti}" data-n="${esc(name||'?')}" data-s="${size}" onerror="avErr(this)" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;display:inline-block;vertical-align:middle;margin-right:6px" alt="">`:avBubble(ti,name,size)}
+return img?`<img src="${esc(img)}" data-ti="${ti}" data-n="${esc(name||'?')}" data-s="${size}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;display:inline-block;vertical-align:middle;margin-right:6px" alt="">`:avBubble(ti,name,size)}
 function plist(m,ti,rc){const t=S.teams[ti];return m.l[ti].length?m.l[ti].map(pi=>`<div class="pl2">${avatar(ti,pi,t.p[pi],32)}<span class="pn2"><b>${esc(t.p[pi])}</b><small>${(rc[ti][pi]||[0,0,0]).join('-')}</small></span></div>`).join(''):`<div class="pl2"><span class="av t">?</span><span class="pn2"><b>TBD</b><small>Set players</small></span></div>`}
 function mcard(m,mi,rc,fin){const b=mbd(m,fin),j=S.matches.filter((x,i)=>i<=mi&&x.d==m.d).length,th=thru(m);
 return `<button class="mx" onclick="live(${mi})"><div class="mt"><span>${m.d.toUpperCase()} · MATCH ${j}</span><span>SCORE ›</span></div><div class="mg"><div>${plist(m,0,rc)}</div><div class="mc2"><div class="bd ${b.c}">${b.t}</div><small>${mlab(m)}</small>${th&&!fin?'<small>Thru '+th+'</small>':''}</div><div>${plist(m,1,rc)}</div></div></button>`}
