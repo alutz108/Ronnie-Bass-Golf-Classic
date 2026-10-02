@@ -402,6 +402,7 @@ body.practice header{top:calc(env(safe-area-inset-top,0px) + 26px)}
 .bgo{all:unset;cursor:pointer;display:block;width:100%;box-sizing:border-box;text-align:center;border-radius:12px;background:var(--ink);color:var(--bg);padding:14px;font:800 18px 'Barlow Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase}
 .berr{margin:0 0 8px;padding:8px 10px;border-radius:10px;background:var(--bg);border:1.5px solid var(--redt);color:var(--redt);font:700 14px 'Barlow',sans-serif}
 .lbt tr.me td{font-weight:800}
+.bflow{display:block;margin-top:2px;font-weight:700;color:var(--tealt)}
 </style></head><body>
 <header><img src="logo.6751ba0b.webp" alt="Ronnie Bass Classic logo">
 <div id="hd"><span class="lbl" id="lbl"></span><h1><span id="ev"></span></h1></div><span id="sy" class="sy"></span></header>
@@ -416,7 +417,7 @@ body.practice header{top:calc(env(safe-area-inset-top,0px) + 26px)}
 // PRACTICE: a sandbox tournament that lives only on this phone. It uses its own saved copy, never connects to the shared database, and cannot change the real event.
 const PRACTICE=(()=>{try{const s=location.search;if(/[?&]practice=(0|off)(&|$)/.test(s)||/[?&]scorer(=|&|$)/.test(s)){localStorage.removeItem('rbc_practice_on');return false}if(/[?&]practice(=1|=on|=true)?(&|$)/.test(s)){localStorage.setItem('rbc_practice_on','1');return true}return localStorage.getItem('rbc_practice_on')=='1'}catch(e){return false}})();
 const KEY=PRACTICE?'rbc_practice_v1':'rbc_v2',$=s=>document.querySelector(s);
-const BUILD=25; // bump together with CACHE in sw.js on every release; a phone running an older build than the event's is held back from saving (see STALE)
+const BUILD=26; // bump together with CACHE in sw.js on every release; a phone running an older build than the event's is held back from saving (see STALE)
 let UPDREADY=false,STALE=false,DENIED=false,RRDEF=false,PENDM={},FRESH=false,KNOWNB=0,LSET=null,SMSG='',PAIRC=null,PAIRDAY=null,PAIRMSG='';
 const HELD={};
 const VIEWER=(()=>{try{if(PRACTICE)return false;const s=location.search,w=/[?&]watch(=|&|$)/.test(s)||location.hash=='#watch';if(/[?&]scorer(=|&|$)/.test(s))localStorage.removeItem('rbc_watch');else if(w)localStorage.setItem('rbc_watch','1');return !/[?&]scorer(=|&|$)/.test(s)&&(w||localStorage.getItem('rbc_watch')=='1')}catch(e){return false}})(),roBase=()=>VIEWER||SY=='ro'||STALE,isRO=()=>roBase()||!!(typeof S==='object'&&S&&S.closed);
@@ -695,7 +696,7 @@ return h+`<button class="op go" style="width:100%;margin:0 0 8px" onclick="downl
 const BET_VIG_FUT=.10,BET_DAYSD=1.5,BET_PRIOR=4,BET_N=6000,BET_NN=12000,BET_MIN=.004;
 let BETS=[],BETWHO='',BETTAB='l',BETSEL=null,BETMSG='',BETOPEN={},BETERR='',BETC=null,BETSTAKE='';
 try{BETWHO=localStorage.getItem('rbc_bettor')||''}catch(e){}
-const betCfg=()=>Object.assign({start:1000,max:250,open:true},(typeof S==='object'&&S&&S.bet)||{});
+const betCfg=()=>Object.assign({start:1000,max:250,open:true,flow:true},(typeof S==='object'&&S&&S.bet)||{});
 const BETMK=[['cup','Cup winner'],['lowWk','Lowest net round of the weekend'],['lowFriday','Lowest net round, Friday'],['lowSaturday','Lowest net round, Saturday'],['lowSunday','Lowest net round, Sunday'],['bbFriday','Best ball team, Friday'],['bbSaturday','Best ball team, Saturday'],['sun','Sunshine'],['ger','Gerry Bertier'],['alan','Alan Bosley']];
 const betList=()=>(PRACTICE||!DB)?((S.betsLocal=S.betsLocal||[])):BETS;
 function betRng(seed){let a=seed>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
@@ -738,6 +739,18 @@ for(let s=0;s<N;s++){if(s%250==249)yield;const pp=[S.teams[0].p.map(()=>0),S.tea
  const pick=(ti,mx)=>{const a=pp[ti],v=mx?Math.max(...a):Math.min(...a);if(mx&&v<=0)return[];return a.map((x,i)=>x==v?i:-1).filter(i=>i>=0)};
  [['sun',lead,1],['ger',tr,1],['alan',tr,0]].forEach(([k,ti,mx])=>{const w=pick(ti,mx);w.forEach(i=>{const n=S.teams[ti].p[i];acc[k][n]=(acc[k][n]||0)+1/w.length})})}
 Object.keys(acc).forEach(k=>Object.keys(acc[k]).forEach(n=>{acc[k][n]/=Math.max(1,used)}));return acc}
+const BET_FLOW_K=1500,BET_FLOW_MAX=.30;
+const betVisible=id=>/Saturday$/.test(id)?dayDone('Friday'):/Sunday$/.test(id)?dayDone('Saturday'):true; // Saturday lines appear when Friday is complete, Sunday lines when Saturday is complete
+// The betting moves the line, like a sportsbook balancing its book: the more of the money (all bettors, all bets on the line) is on a selection, the more its chance is pulled toward its share of the money.
+// The pull grows with the amount bet, w = money / (money + 1500), and never exceeds 30 percent, so a few small bets barely matter and a heavily backed selection shortens clearly. Selections the model says are dead are not revived, and a decided line is not touched.
+function betFlow(mk,L,cfg){const out=Object.assign({},mk);if(mk.st!='open'||cfg.flow===false)return Object.assign(out,{flow:null,sels:mk.sels.map(s=>Object.assign({},s,{p0:s.p}))});
+const el=mk.sels.filter(s=>s.p>=BET_MIN);if(el.some(s=>s.p>=.996))return Object.assign(out,{flow:null,sels:mk.sels.map(s=>Object.assign({},s,{p0:s.p}))});
+const st={};let T=0;L.forEach(b=>{if(b.m!=mk.id)return;if(!el.some(s=>s.id==b.s))return;st[b.s]=(st[b.s]||0)+b.k;T+=b.k});
+if(T<=0)return Object.assign(out,{flow:{T:0},sels:mk.sels.map(s=>Object.assign({},s,{p0:s.p}))});
+const pm=el.reduce((a,s)=>a+s.p,0),w=T/(T+BET_FLOW_K),a=w*BET_FLOW_MAX;let top=null;
+const sels=mk.sels.map(s=>{if(s.p<BET_MIN)return Object.assign({},s,{p0:s.p});const sh=(st[s.id]||0)/T;if(!top||sh>top.share)top={id:s.id,label:s.label,share:sh};const p=Math.max(BET_MIN,(1-a)*s.p+a*pm*sh);return Object.assign({},s,{p0:s.p,p,share:sh,price:betPriceNum(p,mk.vig)})}).sort((x,y)=>y.p-x.p);
+return Object.assign(out,{sels,flow:{T,top}})}
+function betLive(sync){const base=sync?betMarkets():betReady();if(!base)return null;const cfg=betCfg(),L=betList();return base.filter(mk=>betVisible(mk.id)).map(mk=>betFlow(mk,L,cfg))}
 function betPriceNum(p,vig){if(p<BET_MIN)return null;if(p>=.996)return 0;const q=Math.min(.985,Math.max(.012,p*(1+vig))),rd=x=>{const s=x>=1000?100:x>=300?25:5;return Math.round(x/s)*s};if(q>=.5)return-Math.min(5000,Math.max(100,rd(100*q/(1-q))));return Math.min(20000,Math.max(100,rd(100*(1-q)/q)))}
 const betDec=o=>o>0?1+o/100:1+100/-o;
 function betResolve(id){const done=d=>dayDone(d),all=S.matches.length>0&&S.matches.every(mFin),back=n=>S.teams.flatMap(t=>t.p).find(x=>wan(x)===n)||n;
@@ -781,12 +794,12 @@ function betSetWho(n){n=String(n||'').replace(/[^A-Za-z0-9 .'\-]/g,'').trim().sl
 function betWhoClear(){BETWHO='';try{localStorage.removeItem('rbc_bettor')}catch(e){}BETSEL=null;render()}
 function betTab(t){BETTAB=t;BETMSG='';render();scrollTo(0,0)}
 function betMore(id){BETOPEN[id]=!BETOPEN[id];render()}
-function betPick(mid,sel){const mk=betMarkets().find(m=>m.id==mid),s=mk&&mk.sels.find(x=>x.id==sel);if(!s||!s.price)return;BETSEL={m:mid,s:sel,price:s.price,p:s.p,label:s.label,title:mk.title};BETSTAKE='';BETMSG='';render()}
+function betPick(mid,sel){const mk=(betLive()||betLive(true)||[]).find(m=>m.id==mid),s=mk&&mk.sels.find(x=>x.id==sel);if(!s||!s.price)return;BETSEL={m:mid,s:sel,price:s.price,p:s.p,label:s.label,title:mk.title};BETSTAKE='';BETMSG='';render()}
 function betSlipClose(){BETSEL=null;BETMSG='';render()}
 function betStake(v){BETSTAKE=String(v);render()}
 function betStakeIn(v){BETSTAKE=String(v).replace(/[^0-9]/g,'').slice(0,6);const w=document.getElementById('bsw');if(w){const s=Math.floor(+BETSTAKE)||0,o=BETSEL?BETSEL.price:0,t=document.getElementById('bsret');if(t&&o)t.textContent=s?'To win '+Math.round(s*(betDec(o)-1)*100)/100+' \u00b7 returns '+Math.round(s*betDec(o)*100)/100:'Enter a stake'}}
 function betPlace(){const cfg=betCfg(),sel=BETSEL;if(!sel)return;const err=m=>{BETMSG=m;render()};
-const mk=betMarkets().find(m=>m.id==sel.m),s=mk&&mk.sels.find(x=>x.id==sel.s);
+const mk=(betLive()||betLive(true)||[]).find(m=>m.id==sel.m),s=mk&&mk.sels.find(x=>x.id==sel.s);
 if(!BETWHO)return err('Pick who you are first.');if(S.closed)return err('The event is closed.');if(VIEWER||STALE)return err(VIEWER?'This phone is view only. Enter the access code to bet.':'Update the app to keep betting.');if(!cfg.open)return err('Betting is closed.');
 if(!mk||mk.st!='open'||!s||!s.price)return err('That line is no longer open.');
 const stake=Math.floor(+BETSTAKE);if(!(stake>=1))return err('Enter a stake.');if(stake>cfg.max)return err('The most you can bet is '+cfg.max+' credits.');
@@ -799,11 +812,11 @@ BETMSG='Placing your bet\u2026';render();
 DB.collection('bets').add(doc).then(()=>{BETSEL=null;BETMSG='Bet placed.';render()}).catch(e=>{BETMSG=e&&e.code=='permission-denied'?'Betting is not switched on in the database yet. The commissioner needs to publish the updated firestore.rules.':'Could not place the bet. Check your connection and try again.';render()})}
 function betVoid(id,btn){if(!btn.dataset.c){btn.dataset.c=1;btn.textContent='Tap again to void';return}
 if(PRACTICE||!DB){S.betsLocal=(S.betsLocal||[]).filter(b=>b.id!=id);save();render();return}DB.collection('bets').doc(id).delete().catch(()=>{BETMSG='Could not void that bet.';render()})}
-function betAdminSet(k,v){S.bet=S.bet||{};if(k=='open')S.bet.open=!!v;else{const n=Math.max(1,Math.min(1000000,Math.floor(+v)||0));if(n)S.bet[k]=n}save();render()}
+function betAdminSet(k,v){S.bet=S.bet||{};if(k=='open')S.bet.open=!!v;else if(k=='flow')S.bet.flow=!!v;else{const n=Math.max(1,Math.min(1000000,Math.floor(+v)||0));if(n)S.bet[k]=n}save();render()}
 const betTeamDot=ti=>ti==0?'var(--red)':ti==1?'var(--teal)':'#b9a98a';
 const betStatus=mk=>mk.st=='settled'?['Settled','set']:mk.st=='void'?['Void','set']:mk.st=='wait'?['Not open yet','wait']:mk.sels.some(s=>s.p>=.996)?['Awaiting result','wait']:['Open','open'];
 function betCard(mk){const cfg=betCfg(),st=betStatus(mk),can=mk.st=='open'&&cfg.open&&!S.closed&&BETWHO,all=BETOPEN[mk.id],list=mk.id=='cup'||all?mk.sels:mk.sels.slice(0,4);
-let h=`<div class="bm"><div class="bmh"><b>${esc(mk.title)}</b><span class="bst ${st[1]}">${st[0]}</span></div><small class="mu">${esc(mk.sub)}</small>`;
+let h=`<div class="bm"><div class="bmh"><b>${esc(mk.title)}</b><span class="bst ${st[1]}">${st[0]}</span></div><small class="mu">${esc(mk.sub)}</small>${mk.flow&&mk.flow.T>0?`<small class="mu bflow">Most bet: ${esc(mk.flow.top.label)} (${Math.round(mk.flow.top.share*100)}% of ${Math.round(mk.flow.T).toLocaleString()} credits)</small>`:''}`;
 if(mk.st=='wait')return h+'</div>';
 if(mk.st=='settled'||mk.st=='void'){h+=mk.st=='void'?'<p class="mu" style="margin:8px 0 0">No winner, so every bet on this line was refunded.</p>':`<p style="margin:8px 0 0"><b>Winner${mk.win.length>1?'s (dead heat)':''}:</b> ${mk.win.map(w=>esc(mk.sels.find(s=>s.id==w)?mk.sels.find(s=>s.id==w).label:w)).join(', ')}</p>`;return h+'</div>'}
 h+=list.map(s=>{const pr=s.price,txt=pr===null?'OFF':pr===0?'\u2713':fmtAm(pr),live=mk.st=='open'&&pr;return `<button class="bsel" ${live&&can?`onclick="betPick('${mk.id}','${esc(s.id).replace(/'/g,'')}')"`:'disabled'}><i style="background:${betTeamDot(s.ti)}"></i><span>${esc(s.label)}${mk.id!='cup'&&mk.id.slice(0,2)!='bb'?`<small>${esc(S.teams[s.ti]?S.teams[s.ti].n:'')}</small>`:''}</span>${betPill('b:'+mk.id+':'+s.id,s.p,mk.vig,s.ti,mk.title+', '+s.label)}</button>`}).join('');
@@ -825,11 +838,11 @@ function betPage(){if(PRACTICE){}const cfg=betCfg();let h=`<div class="card"><h2
 if(!BETWHO){const names=S.teams.flatMap(t=>t.p);return h+`<p style="margin:0 0 8px"><b>Who are you?</b></p><div class="bwho">${names.map(n=>`<button onclick="betSetWho(${JSON.stringify(n).replace(/"/g,'&quot;')})">${esc(n)}</button>`).join('')}</div><label class="bin" style="margin-top:10px"><span>Someone else</span><input id="bwo" maxlength="24" placeholder="Your name" aria-label="Your name"></label><button class="op go" style="margin:8px 0 0" onclick="betSetWho(document.getElementById('bwo').value)">Use this name</button></div>`}
 const bk=betBank(BETWHO);h+=`<div class="bme"><span>Betting as <b>${esc(BETWHO)}</b></span><button class="lk" onclick="betWhoClear()">Change</button></div><div class="bbk"><div><small>Available</small><b>${Math.floor(bk.avail)}</b></div><div><small>In play</small><b>${Math.round(bk.open)}</b></div><div><small>Profit</small><b style="color:var(--${bk.prof>0?'tealt':bk.prof<0?'redt':'ink'})">${bk.prof>0?'+':bk.prof<0?'\u2212':''}${Math.abs(Math.round(bk.prof))}</b></div></div>`;
 if(!cfg.open)h+=`<p class="mu" style="margin:8px 0 0"><b>Betting is closed.</b></p>`;else if(S.closed)h+=`<p class="mu" style="margin:8px 0 0"><b>The event is closed.</b></p>`;if(BETMSG&&!BETSEL)h+=`<p class="mu" style="margin:8px 0 0"><b>${esc(BETMSG)}</b></p>`;h+=`</div><div class="bt" role="tablist">${[['l','Lines'],['m','My bets'],['b','Leaderboard']].map(([k,t])=>`<button role="tab" aria-selected="${BETTAB==k}" class="${BETTAB==k?'on':''}" onclick="betTab('${k}')">${t}</button>`).join('')}</div>`;
-const mkl=betReady();if(!mkl)return h+`<div class="card"><p class="mu" style="margin:0">Pricing the lines\u2026</p></div>`;
-h+=BETTAB=='m'?betMine():BETTAB=='b'?betBoard():mkl.map(betCard).join('')+`<p class="mu" style="margin:0 2px 12px;font-size:13px">Odds include a built-in margin like a sportsbook. A tie for the win is a dead heat: the stake is split between the winners. Credits are for fun only and are not real money.</p>`;
+const mkl=betLive();if(!mkl)return h+`<div class="card"><p class="mu" style="margin:0">Pricing the lines\u2026</p></div>`;
+h+=BETTAB=='m'?betMine():BETTAB=='b'?betBoard():mkl.map(betCard).join('')+`${mkl.length<betMarkets().length?'<p class="mu" style="margin:0 2px 8px;font-size:13px">Saturday lines open when Friday is complete, and Sunday lines when Saturday is complete.</p>':''}<p class="mu" style="margin:0 2px 12px;font-size:13px">Odds include a built-in margin like a sportsbook, and they move as scores come in and as people bet. A tie for the win is a dead heat: the stake is split between the winners. Credits are for fun only and are not real money.</p>`;
 return h+betSlipHtml()}
 function betAdmin(){const cfg=betCfg(),L=betList().slice().sort((a,b)=>b.t-a.t).slice(0,12),mks=BETC?BETC.mk:[];
-return `<div class="card"><h2>Betting</h2><p class="mu">Play credits for the Betting menu. Each person starts with the amount below.</p><div class="hi" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>Starting credits</span><input class="opt" type="number" min="1" value="${cfg.start}" onchange="betAdminSet('start',this.value)" aria-label="Starting credits" style="width:96px"></div><div class="hi" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>Most per bet</span><input class="opt" type="number" min="1" value="${cfg.max}" onchange="betAdminSet('max',this.value)" aria-label="Most credits per bet" style="width:96px"></div><button class="op" style="margin:10px 0 0;text-align:center" onclick="betAdminSet('open',${!cfg.open})">${cfg.open?'Close betting':'Open betting'}</button>${L.length?`<h3 style="margin:14px 0 6px;font-size:15px">Latest bets</h3>`+L.map(b=>`<div class="hi" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="min-width:0"><b>${esc(b.w)}</b> \u00b7 ${esc(b.m)} \u00b7 ${esc(b.s)}<br><small class="mu">${b.k} @ ${fmtAm(b.o)}</small></span><button class="rs" style="margin:0;padding:6px 10px;min-height:0;font-size:13px" onclick="betVoid('${esc(b.id)}',this)">Void</button></div>`).join(''):''}</div>`}
+return `<div class="card"><h2>Betting</h2><p class="mu">Play credits for the Betting menu. Each person starts with the amount below.</p><div class="hi" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>Starting credits</span><input class="opt" type="number" min="1" value="${cfg.start}" onchange="betAdminSet('start',this.value)" aria-label="Starting credits" style="width:96px"></div><div class="hi" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>Most per bet</span><input class="opt" type="number" min="1" value="${cfg.max}" onchange="betAdminSet('max',this.value)" aria-label="Most credits per bet" style="width:96px"></div><button class="op" style="margin:10px 0 8px;text-align:center" onclick="betAdminSet('open',${!cfg.open})">${cfg.open?'Close betting':'Open betting'}</button><button class="op" style="margin:0;text-align:center" onclick="betAdminSet('flow',${!cfg.flow})">Betting moves the odds: ${cfg.flow?'On':'Off'}</button>${L.length?`<h3 style="margin:14px 0 6px;font-size:15px">Latest bets</h3>`+L.map(b=>`<div class="hi" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="min-width:0"><b>${esc(b.w)}</b> \u00b7 ${esc(b.m)} \u00b7 ${esc(b.s)}<br><small class="mu">${b.k} @ ${fmtAm(b.o)}</small></span><button class="rs" style="margin:0;padding:6px 10px;min-height:0;font-size:13px" onclick="betVoid('${esc(b.id)}',this)">Void</button></div>`).join(''):''}</div>`}
 function stand(c){WCX=null;const [a,b]=S.teams,tot=S.matches.reduce((x,m)=>x+m.pv.reduce((p,q)=>p+q,0),0),d=Math.abs(c.t[0]-c.t[1]);
 const st=!c.n?'Tap a box below to score a point':c.t[0]==c.t[1]?'All square':`${esc(S.teams[c.t[0]>c.t[1]?0:1].n)} leads by ${d}`;
 const pj=projd(),rc=recs(),fin=[],inp=[],up=[];S.matches.forEach((m,mi)=>{(mFin(m)?fin:thru(m)||m.s.some(x=>x)?inp:up).push(mi)});
@@ -1896,15 +1909,21 @@ const m=S.matches[i];if(!m)return;const o=S.sc[m.d]||(S.sc[m.d]={}),t=S.tees[m.d
 m.l.forEach((l,ti)=>l.forEach(pi=>{delete o[ti+'_'+pi];delete t[ti+'_'+pi]}));Object.assign(m,{f:p.f,n:p.n,pv:p.pv,s:p.s,l:p.l});Object.assign(o,p.sc);Object.assign(t,p.te)}
 
 // ---- Outbound: scan for anything locally changed since last confirmed sync, debounce, flush per field.
-function pa(){if(PRACTICE||!DB||roBase()||Date.now()<HOLD||(REGS!='ok'&&REGS!='legacy'))return;
-if(LP['meta.meta']===undefined)return; // haven't heard from the server about the roster/settings yet — never push a guess over it
+function mkDirty(){S.matches.forEach((m,i)=>fkeys(i).forEach(field=>{const key='m'+i+'.'+field,val=fval(i,field);
+ if(val===LP[key]){if(DRT[key]&&!TM[key]&&!BZ[key])clean(key);return} // back to what the database has: nothing left to send
+ if(DRT[key])return;if(val==='null')return;
+ if(LP[key]===undefined||LP[key]===null){if(field=='struct'&&LP[key]===null&&pristine(i,val))return;if(LBASE[key]!==undefined&&val===LBASE[key])return} // unchanged since this phone opened: old local data, not an edit
+ dirty(key)}))}
+function pa(){if(PRACTICE||!DB||roBase())return;
+if(Date.now()<HOLD||(REGS!='ok'&&REGS!='legacy')||LP['meta.meta']===undefined){mkDirty();return} // not allowed to send yet (waiting after a failed write, not registered yet, or the roster has not arrived): remember the edits as unsent so incoming data cannot overwrite them. Never push a guess over the roster/settings before hearing from the server.
 const mk=jm('meta');if(mk!==LP['meta.meta']&&!(LP['meta.meta']===null&&mk===DEFMETA&&!DRT['meta.meta'])&&!TM['meta.meta']){TM['meta.meta']=setTimeout(()=>fl('meta','meta'),600);dirty('meta.meta')} // key must match fl()'s docId.field key, or only the first roster/settings edit ever syncs
 if(LP['settings.settings']!==undefined){const sk=jm('settings');if(sk!==LP['settings.settings']&&!(LP['settings.settings']===null&&sk===LSET&&!DRT['settings.settings'])&&!TM['settings.settings']){TM['settings.settings']=setTimeout(()=>fl('settings','settings'),600);dirty('settings.settings')}}
 if(!S.closed)S.matches.forEach((m,i)=>{fkeys(i).forEach(field=>{const key='m'+i+'.'+field,val=fval(i,field);
 if(LP[key]===undefined&&val==='null'&&!DRT[key])return; // never synced this field and nothing local to say either — don't write a placeholder that could shadow another device's real data, and don't block their update from landing
 if(field=='struct'&&LP[key]===null&&pristine(i,val)&&!DRT[key])return; // don't let every phone write a blank starting record on first open
-if(LP[key]===undefined&&field=='struct'&&!DRT[key])return; // never confirmed this match's lineup/format from the server — don't push our blank starting guess over someone else's real data
+if(LP[key]===undefined&&field=='struct'&&!DRT[key]&&(LBASE[key]===undefined||val===LBASE[key]))return; // never confirmed this match's lineup/format from the server and it is still what this phone started with — don't push our blank starting guess over someone else's real data. A lineup the person picked since opening the app is a real edit and is sent.
 if((LP[key]===undefined||LP[key]===null)&&LBASE[key]!==undefined&&val===LBASE[key]&&!DRT[key])return; // unchanged since this phone opened and the database has nothing for it: old local data, not a new edit
+if(DRT[key]&&val===LP[key]&&!TM[key]&&!BZ[key]){clean(key);return}
 if(val!==LP[key]&&!TM[key]){TM[key]=setTimeout(()=>fl('m'+i,field),field=='struct'?500:field.slice(0,3)=='sc_'?250:900);dirty(key)}})})}
 async function fl(docId,field){if(PRACTICE)return;const key=docId+'.'+field;delete TM[key];
 if(BZ[key]){TM[key]=setTimeout(()=>fl(docId,field),400);return}BZ[key]=1;
@@ -1946,6 +1965,7 @@ let REGS='pending'; // pending | ok (registered under the locked-down rules) | l
 const FDEL=()=>{try{return firebase.firestore.FieldValue.delete()}catch(e){return undefined}};
 const codeBit=()=>{if(REGS=='legacy')return{code:EVENT_CODE};const d=FDEL();return d===undefined?{}:{code:d}}; // locked-down mode also removes any code left in a record by the old app
 async function regDevice(){if(PRACTICE||VIEWER||!DB)return;REGS='pending';try{const u=firebase.auth().currentUser;if(!u)throw{code:'noauth'};await DB.doc('writers/'+u.uid).set({code:EVENT_CODE,ts:Date.now()});REGS='ok'}catch(e){REGS=(e&&(e.code=='unavailable'||e.code=='noauth'))?'pending':'legacy'}
+if(REGS=='pending')setTimeout(()=>{if(REGS=='pending')regDevice()},3000);
 render();pa()}
 function ensureCode(){if(VIEWER){EVENT_CODE='';return ''}try{EVENT_CODE=localStorage.getItem('rbc_code')}catch(e){}
 if(!EVENT_CODE){EVENT_CODE=(prompt('Enter this event\'s access code (ask the commissioner):')||'').trim();
