@@ -9,7 +9,7 @@
 // Bump CACHE in this file on EVERY release (it is what makes browsers pick up a changed service worker and drop the old
 // copy). Picture file names carry a fingerprint, so a changed picture gets a new name and is fetched fresh.
 // Pictures can sit in the repo root or in an img folder: the app tries both, and anything that loads is saved.
-const CACHE = 'rbc-shell-v31';
+const CACHE = 'rbc-shell-v32';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png',
   './logo.6751ba0b.webp',
   './team27-lutz.18e04487.webp',
