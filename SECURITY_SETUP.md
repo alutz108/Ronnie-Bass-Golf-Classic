@@ -33,6 +33,9 @@ On each phone: More > Admin > **Change access code**, enter the new code. (A pho
 1. Firebase console > Storage > **Rules**, paste `storage.rules`, Publish. If the console offers to add permissions so Storage can read Firestore, accept.
 2. Add one photo from a phone to check it still uploads.
 
+## Betting needs the updated rules
+The `firestore.rules` file now also has a `bets` section (build 25). If you published the earlier rules, publish this version again. Until you do, the Betting menu works for looking at lines, but placing a bet shows "Betting is not switched on in the database yet" and nothing is saved.
+
 ## Check that it worked (Rules Playground)
 In Firestore > Rules, open the **Rules Playground** and run these three simulated requests with the "Authenticated" switch on and any uid:
 1. Get `config/access`: must be **Denied**.

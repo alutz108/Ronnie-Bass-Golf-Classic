@@ -377,6 +377,31 @@ body.practice header{top:calc(env(safe-area-inset-top,0px) + 26px)}
 .obx .opl{width:100%;min-width:0;height:48px}
 .obc{text-align:center;font:800 11px 'Barlow Condensed',sans-serif;letter-spacing:.14em;color:var(--muted)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.bm{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:10px 12px 8px;margin:0 0 10px}
+.bmh{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.bmh b{font:800 18px 'Barlow Condensed',sans-serif;letter-spacing:.04em;text-transform:uppercase}
+.bst{font:800 11px 'Barlow Condensed',sans-serif;letter-spacing:.1em;text-transform:uppercase;border-radius:8px;padding:1px 8px;background:var(--line);color:var(--ink)}
+.bst.open{background:var(--teal);color:#fff}.bst.won{background:#2f7a4e;color:#fff}.bst.lost{background:var(--red);color:#fff}
+.bsel{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;min-height:54px;padding:6px 0;border-top:1px solid var(--line);cursor:pointer;color:var(--ink)}
+.bm .bmh+small+.bsel{margin-top:6px}
+.bsel:disabled{cursor:default;opacity:.85}
+.bsel i{width:10px;height:30px;border-radius:5px;flex:none}
+.bsel>span:nth-of-type(1){flex:1;min-width:0;font:800 18px 'Barlow Condensed',sans-serif;letter-spacing:.03em;text-transform:uppercase;line-height:1.1}
+.bsel small{display:block;font:500 12px 'Barlow',sans-serif;color:var(--muted);letter-spacing:0;text-transform:none}
+.bsel .opl{min-width:84px}
+.bt{display:flex;gap:6px;margin:0 0 10px}.bt button{all:unset;cursor:pointer;flex:1;height:40px;border-radius:10px;border:1.5px solid var(--line);text-align:center;font:800 15px/37px 'Barlow Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--ink)}.bt button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.bme{display:flex;justify-content:space-between;align-items:center;margin:0 0 6px}
+.bbk{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.bbk>div{background:var(--bg);border-radius:10px;padding:6px 8px;text-align:center}.bbk small{display:block;font:700 11px 'Barlow',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}.bbk b{font:800 24px 'Barlow Condensed',sans-serif}
+.bwho{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.bwho button{all:unset;cursor:pointer;box-sizing:border-box;text-align:center;border:1.5px solid var(--line);border-radius:10px;padding:10px 6px;font:700 16px 'Barlow',sans-serif;color:var(--ink);background:var(--bg)}
+.bin{display:block}.bin span{display:block;font:700 12px 'Barlow',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 3px}.bin input{box-sizing:border-box;width:100%;height:46px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font:700 20px 'Barlow',sans-serif;padding:0 12px}
+.bsw{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:flex-end;justify-content:center}
+.bs{box-sizing:border-box;width:100%;max-width:520px;background:var(--card);border-radius:20px 20px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px));max-height:90vh;overflow:auto}
+.bsh{display:flex;justify-content:space-between;align-items:center;margin:0 0 6px}.bsh b{font:800 20px 'Barlow Condensed',sans-serif;text-transform:uppercase}.bsh button{all:unset;cursor:pointer;width:36px;height:36px;text-align:center;font-size:18px;color:var(--muted)}
+.bsr{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 0 10px;font:800 20px 'Barlow Condensed',sans-serif;text-transform:uppercase}
+.bch{display:flex;gap:6px;margin:0 0 10px}.bch button{all:unset;cursor:pointer;flex:1;height:40px;border-radius:10px;background:var(--bg);border:1.5px solid var(--line);text-align:center;font:800 16px/37px 'Barlow Condensed',sans-serif;color:var(--ink)}
+.bgo{all:unset;cursor:pointer;display:block;width:100%;box-sizing:border-box;text-align:center;border-radius:12px;background:var(--ink);color:var(--bg);padding:14px;font:800 18px 'Barlow Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase}
+.berr{margin:0 0 8px;padding:8px 10px;border-radius:10px;background:var(--bg);border:1.5px solid var(--redt);color:var(--redt);font:700 14px 'Barlow',sans-serif}
+.lbt tr.me td{font-weight:800}
 </style></head><body>
 <header><img src="logo.6751ba0b.webp" alt="Ronnie Bass Classic logo">
 <div id="hd"><span class="lbl" id="lbl"></span><h1><span id="ev"></span></h1></div><span id="sy" class="sy"></span></header>
@@ -391,7 +416,7 @@ body.practice header{top:calc(env(safe-area-inset-top,0px) + 26px)}
 // PRACTICE: a sandbox tournament that lives only on this phone. It uses its own saved copy, never connects to the shared database, and cannot change the real event.
 const PRACTICE=(()=>{try{const s=location.search;if(/[?&]practice=(0|off)(&|$)/.test(s)||/[?&]scorer(=|&|$)/.test(s)){localStorage.removeItem('rbc_practice_on');return false}if(/[?&]practice(=1|=on|=true)?(&|$)/.test(s)){localStorage.setItem('rbc_practice_on','1');return true}return localStorage.getItem('rbc_practice_on')=='1'}catch(e){return false}})();
 const KEY=PRACTICE?'rbc_practice_v1':'rbc_v2',$=s=>document.querySelector(s);
-const BUILD=24; // bump together with CACHE in sw.js on every release; a phone running an older build than the event's is held back from saving (see STALE)
+const BUILD=25; // bump together with CACHE in sw.js on every release; a phone running an older build than the event's is held back from saving (see STALE)
 let UPDREADY=false,STALE=false,DENIED=false,RRDEF=false,PENDM={},FRESH=false,KNOWNB=0,LSET=null,SMSG='',PAIRC=null,PAIRDAY=null,PAIRMSG='';
 const HELD={};
 const VIEWER=(()=>{try{if(PRACTICE)return false;const s=location.search,w=/[?&]watch(=|&|$)/.test(s)||location.hash=='#watch';if(/[?&]scorer(=|&|$)/.test(s))localStorage.removeItem('rbc_watch');else if(w)localStorage.setItem('rbc_watch','1');return !/[?&]scorer(=|&|$)/.test(s)&&(w||localStorage.getItem('rbc_watch')=='1')}catch(e){return false}})(),roBase=()=>VIEWER||SY=='ro'||STALE,isRO=()=>roBase()||!!(typeof S==='object'&&S&&S.closed);
@@ -526,12 +551,11 @@ const u=S.matches.every(m=>m.pv.every(x=>Math.abs(x*2-Math.round(x*2))<1e-9))?.5
 return{a,t,b,total:tot,bank,left,need,fin:left<=1e-9,exp:exps}}
 function winPct(o){const v=[o.a,o.t,o.b].map(x=>x*100),f=v.map(Math.floor);let r=100-f.reduce((x,y)=>x+y,0);v.map((x,i)=>[x-f[i],i]).sort((x,y)=>y[0]-x[0]).forEach(([_,i])=>{if(r>0){f[i]++;r--}});return f}
 const ODD_VIG=.045; // sportsbook-style margin: both sides of an even match show about -110
-function usOdds(p){if(p<=.004)return 'OFF';if(p>=.996)return '\u2713';const q=Math.min(.985,Math.max(.012,p*(1+ODD_VIG))),rd=x=>{const s=x>=1000?100:x>=300?25:5;return Math.round(x/s)*s};
-if(q>=.5)return '\u2212'+Math.min(5000,Math.max(100,rd(100*q/(1-q))));return '+'+Math.max(100,rd(100*(1-q)/q))}
+function usOdds(p,vig){const n=betPriceNum(p,vig==null?ODD_VIG:vig);return n===null?'OFF':n===0?'\u2713':n<0?'\u2212'+(-n):'+'+n}
 const OP={},OF={};let ODT=0,OFT=0,ODDSOPEN={},WCX=null;
-function oPill(key,p,cls,label){const o=OP[key];OP[key]=p;if(o!==undefined&&Math.abs(o-p)>.002)OF[key]={d:p>o?1:-1,t:Date.now()};const f=OF[key],age=f?Date.now()-f.t:1e9,on=age<9000;
+function oPill(key,p,cls,label,vig){const o=OP[key];OP[key]=p;if(o!==undefined&&Math.abs(o-p)>.002)OF[key]={d:p>o?1:-1,t:Date.now()};const f=OF[key],age=f?Date.now()-f.t:1e9,on=age<9000;
 if(on){OFT=Math.max(OFT,f.t);clearTimeout(ODT);ODT=setTimeout(()=>{ODT=0;if(tab=='s')render()},Math.max(60,OFT+9100-Date.now()))}
-return `<span class="opl ${cls}${p>=.5&&p<.996?' fav':''}${on?(f.d>0?' up':' dn'):''}${age<2000?' an':''}" role="img" aria-label="${esc(label)}, odds ${usOdds(p)}${on?(f.d>0?', getting shorter':', getting longer'):''}">${usOdds(p)}${on?`<i>${f.d>0?'\u25b2':'\u25bc'}</i>`:''}</span>`}
+return `<span class="opl ${cls}${p>=.5&&p<.996?' fav':''}${on?(f.d>0?' up':' dn'):''}${age<2000?' an':''}" role="img" aria-label="${esc(label)}, odds ${usOdds(p,vig)}${on?(f.d>0?', getting shorter':', getting longer'):''}">${usOdds(p,vig)}${on?`<i>${f.d>0?'\u25b2':'\u25bc'}</i>`:''}</span>`}
 function oddsBox(){try{const o=winOdds(),sh=ti=>esc(S.teams[ti].n.replace(/^Team\s+/i,''));
 return `<div class="obx"><div>${oPill('e0',o.a,'r',sh(0)+' to win the Ryder Cup')}</div><div class="obc">WIN ODDS</div><div>${oPill('e1',o.b,'t',sh(1)+' to win the Ryder Cup')}</div></div>`}catch(e){return ''}}
 function winReasons(m,cx){const fx=cx.fx(m),sA=cx.side(m,0),sB=cx.side(m,1),res=r=>r.res[0]+r.res[1]/2,e0=res(winMatch(m,sA,sB,null,false,fx)),sh=ti=>S.teams[ti].n.replace(/^Team\s+/i,''),dn={Friday:'Fridays',Saturday:'Saturdays',Sunday:'Sundays'}[m.d],
@@ -665,6 +689,147 @@ const pays=Object.entries(a.pay).sort((p,q)=>q[1]-p[1]);h+=`<div class="card"><h
 h+=`<div class="card"><h2>Final power rankings</h2><table class="lbt"><thead><tr><th>#</th><th class="l">Player</th><th>Rating</th></tr></thead><tbody>${a.ranks.map(r=>`<tr><td>${esc(r.rank)}</td><td class="l">${esc(r.n)}</td><td>${r.noData?'\u2013':esc(r.rbpr)}</td></tr>`).join('')}</tbody></table></div>`;
 h+=`<div class="card"><h2>Rosters</h2>`+a.teams.map((t,i)=>`<p style="margin:0 0 8px"><b>${esc(t.n)}</b><br><span class="mu">${t.p.map((n,k)=>esc(n)+(t.h[k]?' ('+esc(t.h[k])+')':'')).join(', ')}</span></p>`).join('')+`</div>`;
 return h+`<button class="op go" style="width:100%;margin:0 0 8px" onclick="downloadArchive(${+y})">Download this archive</button>`}
+// ======================= Betting (play credits only) =======================
+// Lines are priced by simulating the rest of the weekend from past results and from everything scored so far, and they move as scores come in.
+// Credits are play money tracked by the app: nothing here moves real money. Every bet is its own record, settled on every phone from the results.
+const BET_VIG_FUT=.10,BET_DAYSD=1.5,BET_PRIOR=4,BET_N=6000,BET_NN=12000,BET_MIN=.004;
+let BETS=[],BETWHO='',BETTAB='l',BETSEL=null,BETMSG='',BETOPEN={},BETERR='',BETC=null,BETSTAKE='';
+try{BETWHO=localStorage.getItem('rbc_bettor')||''}catch(e){}
+const betCfg=()=>Object.assign({start:1000,max:250,open:true},(typeof S==='object'&&S&&S.bet)||{});
+const BETMK=[['cup','Cup winner'],['lowWk','Lowest net round of the weekend'],['lowFriday','Lowest net round, Friday'],['lowSaturday','Lowest net round, Saturday'],['lowSunday','Lowest net round, Sunday'],['bbFriday','Best ball team, Friday'],['bbSaturday','Best ball team, Saturday'],['sun','Sunshine'],['ger','Gerry Bertier'],['alan','Alan Bosley']];
+const betList=()=>(PRACTICE||!DB)?((S.betsLocal=S.betsLocal||[])):BETS;
+function betRng(seed){let a=seed>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
+let BETZ=null;function betNorm(r){if(!BETZ){BETZ=new Float64Array(8192);for(let i=0;i<8192;i++)BETZ[i]=zinv((i+.5)/8192)}return BETZ[(r()*8192)|0]}
+function betModel(){const rows={};const push=(n,d)=>{(rows[n]=rows[n]||[]).push(d)};
+[2024,2025,2026].forEach(y=>{const sc=OLD[y];if(!sc)return;for(let k=0;k<3;k++){const rs=sc.filter(r=>r[1+k*2]>0&&r[2+k*2]>0);if(rs.length<4)continue;const fm=wmean(rs.map(r=>r[2+k*2]));rs.forEach(r=>push(r[0],r[2+k*2]-fm))}});
+const ks=[];DAYS.forEach(d=>{const cs=COURSE[d],rs=[];S.teams.forEach((t,ti)=>t.p.forEach((nm,pi)=>{const r=roundNet(d,ti,pi);if(r&&r.nets.every(x=>x!=null))rs.push({n:wan(nm),net:r.nets.reduce((a,b)=>a+b,0)})}));if(rs.length>=6){const fm=wmean(rs.map(x=>x.net));rs.forEach(x=>push(x.n,x.net-fm));ks.push(fm-(cs?cs.par.reduce((a,b)=>a+b,0):72))}});
+let ss=0,df=0;Object.keys(rows).forEach(n=>{const a=rows[n];if(a.length<2)return;const m=wmean(a);a.forEach(x=>{ss+=(x-m)*(x-m)});df+=a.length-1});const pv=df>0?ss/df:16,pm={};
+Object.keys(rows).forEach(n=>{const a=rows[n],k=a.length,m=wmean(a);let s2=pv;if(k>=2){s2=0;a.forEach(x=>{s2+=(x-m)*(x-m)});s2/=k-1}const v=(k*s2+BET_PRIOR*pv)/(k+BET_PRIOR);pm[n]={b:k/(k+BET_PRIOR)*m,sd:Math.min(6.5,Math.max(2.5,Math.sqrt(v))),n:k}});
+return{pm,pv,K:ks.length?wmean(ks):0,pool:Math.sqrt(pv)}}
+function betRounds(M){const out={};DAYS.forEach(d=>{const cs=COURSE[d],par=cs?cs.par:Array(18).fill(4);out[d]={par,rows:[]};S.teams.forEach((t,ti)=>t.p.forEach((nm,pi)=>{const n=wan(nm),r=roundNet(d,ti,pi),nets=r?r.nets:Array(18).fill(null);let so=0,pl=0,rp=0;for(let h=0;h<18;h++){if(nets[h]!=null){so+=nets[h];pl++}else rp+=par[h]}
+const m=M.pm[n]||{b:0,sd:Math.min(6.5,Math.max(2.5,M.pool*1.1))};out[d].rows.push({n:nm,ti,pi,so,r:18-pl,rp,b:m.b,sd:m.sd,nets,par})}))});return out}
+function* betSimNet(R,K){const rng=betRng(7771),N=BET_NN,nd=DAYS.length,P=R.Friday.rows.length,names=R.Friday.rows.map(x=>x.n),base=[],cf=[],bb=[],sr=[],fx=[];
+DAYS.forEach(d=>{const rs=R[d].rows;base.push(Float64Array.from(rs.map(x=>x.so+x.rp)));cf.push(Float64Array.from(rs.map(x=>x.r/18)));bb.push(Float64Array.from(rs.map(x=>x.b)));sr.push(Float64Array.from(rs.map(x=>x.sd*Math.sqrt(x.r/18))));fx.push(Uint8Array.from(rs.map(x=>x.r==0?1:0)))});
+const dayW=DAYS.map(()=>new Float64Array(P)),wk=new Float64Array(P),f=DAYS.map(()=>new Float64Array(P)),e=new Float64Array(nd),w=1/N;
+for(let s=0;s<N;s++){if(s%500==499)yield;for(let di=0;di<nd;di++)e[di]=BET_DAYSD*betNorm(rng);let wm=1e9;
+ for(let di=0;di<nd;di++){const fd=f[di],bs=base[di],c=cf[di],b=bb[di],sd=sr[di],fi=fx[di];let dm=1e9;for(let i=0;i<P;i++){const z=betNorm(rng);const v=Math.round(fi[i]?bs[i]:bs[i]+c[i]*(K+b[i]+e[di])+sd[i]*z);fd[i]=v;if(v<dm)dm=v}
+  let cnt=0;for(let i=0;i<P;i++)if(fd[i]==dm)cnt++;const ww=w/cnt;for(let i=0;i<P;i++)if(fd[i]==dm)dayW[di][i]+=ww;if(dm<wm)wm=dm}
+ let cnt=0;const hit=new Uint8Array(P);for(let di=0;di<nd;di++)for(let i=0;i<P;i++)if(f[di][i]==wm&&!hit[i]){hit[i]=1;cnt++}for(let i=0;i<P;i++)if(hit[i])wk[i]+=w/cnt}
+const o={wk:{}};DAYS.forEach(d=>o[d]={});names.forEach((n,i)=>{o.wk[n]=wk[i];DAYS.forEach((d,di)=>{o[d][n]=dayW[di][i]})});return o}
+function betSides(day){const out=[];S.matches.forEach((m,mi)=>{if(m.d!=day||m.n<2)return;if(!m.l[0].length||!m.l[1].length)return;[0,1].forEach(ti=>out.push({id:ti+':'+m.l[ti].join('-'),ti,pis:m.l[ti],mi}))});return out}
+const betPhi=x=>{const s=x<0?-1:1,z=Math.abs(x)/Math.SQRT2,u=1/(1+.3275911*z),y=1-(((((1.061405429*u-1.453152027)*u)+1.421413741)*u-.284496736)*u+.254829592)*u*Math.exp(-z*z);return .5*(1+s*y)},betPdf=x=>Math.exp(-x*x/2)/Math.sqrt(2*Math.PI);
+function betMin2(a,b){const th=Math.sqrt(a.v+b.v);if(th<1e-9){return a.m<=b.m?a:b}const al=(b.m-a.m)/th,P=betPhi(al),Q=1-P,f=betPdf(al),m=a.m*P+b.m*Q-th*f,m2=(a.m*a.m+a.v)*P+(b.m*b.m+b.v)*Q-(a.m+b.m)*th*f;return{m,v:Math.max(0,m2-m*m)}}
+// best ball team total: the best net on each hole, summed. Each hole's best of the side's players is a minimum of normals (Clark's formulas); the holes already played are fixed.
+function betSimBB(R,K,day){const sides=betSides(day);if(!sides.length)return null;const rng=betRng(9917+DAYS.indexOf(day)),N=20000,res={},par=R[day].par,rowOf={};R[day].rows.forEach(x=>{rowOf[x.ti+'_'+x.pi]=x});
+const info=sides.map(sd=>{const ps=sd.pis.map(pi=>rowOf[sd.ti+'_'+pi]);let m0=0,v0=0,gs=0,rem=0,bs=0;for(let h=0;h<18;h++){const ds=ps.map(x=>x.nets[h]!=null?{m:x.nets[h],v:0}:{m:par[h]+(K+x.b)/18,v:x.sd*x.sd/18});let c=ds[0];for(let k=1;k<ds.length;k++)c=betMin2(c,ds[k]);m0+=c.m;v0+=c.v;const open=ps.filter(x=>x.nets[h]==null).length;if(open>0){rem++;bs+=open/ps.length}}return{id:sd.id,m0,v0,rem:bs}});
+for(let s=0;s<N;s++){const e=BET_DAYSD*betNorm(rng);let bm=1e9,bw=[];info.forEach(x=>{const tot=Math.round(x.m0+e*x.rem/18+Math.sqrt(x.v0)*betNorm(rng));if(tot<bm){bm=tot;bw=[x.id]}else if(tot==bm)bw.push(x.id)});bw.forEach(id=>{res[id]=(res[id]||0)+1/bw.length/N})}
+return{sides,p:res}}
+function winJoint(m,sA,sB,fx){const R=holes(m),P=winParams(m,sA,sB,fx),ph=P.ph,paF=(1-ph+P.muF)/2,pbF=(1-ph-P.muF)/2,paB=(1-ph+P.muB)/2,pbB=(1-ph-P.muB)/2,seg=(a,b)=>{let d=0,rem=0;for(let i=a;i<b;i++){const x=R[i];if(x=='A')d++;else if(x=='B')d--;else if(x==null)rem++}return{d,rem}};
+const F=seg(0,9),B=seg(9,18),FD=hdist(F.d,F.rem,paF,pbF,ph),BD=hdist(B.d,B.rem,paB,pbB,ph),fix=k=>{const v=m.s[k];return v&&v.w?v.w:null},sg=x=>x>0?'A':x<0?'B':'H',out=[];
+FD.forEach((pf,fd)=>BD.forEach((pb,bd)=>out.push([pf*pb,fix(0)||sg(fd),fix(1)||sg(bd),fix(2)||sg(fd+bd)])));return out}
+function* betSimEvents(){const cx=winCtx(),rng=betRng(31337),N=BET_N,ms=[];
+DAYS.forEach(d=>{const real=S.matches.filter(m=>m.d==d);let v=real;if(real.some(m=>!m.l[0].length||!m.l[1].length)){let sug=null;try{sug=rbSug(d)}catch(e){}v=real.map((m,i)=>{if(m.l[0].length&&m.l[1].length)return m;if(sug&&sug.matches[i])return Object.assign({},m,{l:[sug.matches[i][0].map(p=>p.pi),sug.matches[i][1].map(p=>p.pi)]});return m});}
+ v.forEach(m=>{if(!m.l[0].length||!m.l[1].length)return;const fx=cx.fx(m),j=winJoint(m,cx.side(m,0),cx.side(m,1),fx);let c=0;const cum=j.map(x=>c+=x[0]);ms.push({m,j,cum,tot:c})})});
+const q=(w,pv,me)=>w=='H'?Math.round(pv*2):(w=='A')==me?Math.round(pv*4):0;const acc={sun:{},ger:{},alan:{}};let void_=0,used=0;
+for(let s=0;s<N;s++){if(s%250==249)yield;const pp=[S.teams[0].p.map(()=>0),S.teams[1].p.map(()=>0)],T=[0,0];
+ ms.forEach(x=>{const u=rng()*x.tot;let lo=0,hi=x.cum.length-1;while(lo<hi){const mid=(lo+hi)>>1;if(x.cum[mid]>=u)hi=mid;else lo=mid+1}const o=x.j[lo],pv=x.m.pv;
+  [0,1].forEach(ti=>{const me=ti==0,pts=q(o[1],pv[0],me)+q(o[2],pv[1],me)+q(o[3],pv[2],me);T[ti]+=pts;x.m.l[ti].forEach(pi=>{pp[ti][pi]+=pts})})});
+ if(T[0]==T[1]){void_++;continue}used++;const lead=T[0]>T[1]?0:1,tr=1-lead;
+ const pick=(ti,mx)=>{const a=pp[ti],v=mx?Math.max(...a):Math.min(...a);if(mx&&v<=0)return[];return a.map((x,i)=>x==v?i:-1).filter(i=>i>=0)};
+ [['sun',lead,1],['ger',tr,1],['alan',tr,0]].forEach(([k,ti,mx])=>{const w=pick(ti,mx);w.forEach(i=>{const n=S.teams[ti].p[i];acc[k][n]=(acc[k][n]||0)+1/w.length})})}
+Object.keys(acc).forEach(k=>Object.keys(acc[k]).forEach(n=>{acc[k][n]/=Math.max(1,used)}));return acc}
+function betPriceNum(p,vig){if(p<BET_MIN)return null;if(p>=.996)return 0;const q=Math.min(.985,Math.max(.012,p*(1+vig))),rd=x=>{const s=x>=1000?100:x>=300?25:5;return Math.round(x/s)*s};if(q>=.5)return-Math.min(5000,Math.max(100,rd(100*q/(1-q))));return Math.min(20000,Math.max(100,rd(100*(1-q)/q)))}
+const betDec=o=>o>0?1+o/100:1+100/-o;
+function betResolve(id){const done=d=>dayDone(d),all=S.matches.length>0&&S.matches.every(mFin),back=n=>S.teams.flatMap(t=>t.p).find(x=>wan(x)===n)||n;
+const rowsOf=d=>bagStatsDay(d).filter(r=>r.holesN==18);const lowest=ds=>{const rs=[].concat(...ds.map(rowsOf));if(!rs.length)return null;const mn=Math.min(...rs.map(r=>r.totalNet));return[...new Set(rs.filter(r=>r.totalNet==mn).map(r=>r.name))]};
+const aw=()=>awardsAll(),ev=k=>{const a=aw(),o=[];Object.keys(a).forEach(n=>(a[n][k]||[]).forEach(w=>{if(w.y=='2027'&&!w.prov)o.push(back(n))}));return o};
+let w=null;
+if(id=='cup'){if(!all)return{st:'open'};const t=calc().t;w=[t[0]>t[1]?'A':t[0]<t[1]?'B':'T']}
+else if(/^low(Friday|Saturday|Sunday)$/.test(id)){const d=id.slice(3);if(!done(d))return{st:'open'};w=lowest([d])}
+else if(id=='lowWk'){if(!DAYS.every(done))return{st:'open'};w=lowest(DAYS)}
+else if(/^bb(Friday|Saturday)$/.test(id)){const d=id.slice(2);if(!done(d))return{st:'open'};const ps=bbPairs(d).filter(p=>p.thru==18);if(ps.length){const mn=Math.min(...ps.map(p=>p.total));w=ps.filter(p=>p.total==mn).map(p=>p.ti+':'+p.pis.join('-'))}}
+else if(id=='sun'||id=='ger'||id=='alan'){if(!all)return{st:'open'};w=ev(id)}
+if(!w||!w.length)return{st:'void',win:[]};return{st:'settled',win:w}}
+function betOut(b){const r=betResolve(b.m);if(r.st=='open')return{st:'open',pay:0,profit:0};if(r.st=='void')return{st:'void',pay:b.k,profit:0};
+const k=r.win.length;if(r.win.indexOf(b.s)<0)return{st:'lost',pay:0,profit:-b.k};const pay=Math.round(b.k/k*betDec(b.o)*100)/100;return{st:k>1?'dead':'won',pay,profit:pay-b.k}}
+function betBank(who){const c=betCfg();let prof=0,res=0,w=0,l=0,n=0;betList().filter(b=>b.w==who).forEach(b=>{const o=betOut(b);n++;if(o.st=='open')res+=b.k;else{prof+=o.profit;if(o.profit>0)w++;else if(o.profit<0)l++}});return{total:c.start+prof,avail:c.start+prof-res,open:res,prof,w,l,n}}
+function betSig(){let s=JSON.stringify([S.matches.map(m=>[m.l,m.s,!!m.final]),S.sc,S.tees,S.crs,S.teams.map(t=>t.p)]),h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return h+':'+s.length}
+let BETBUSY=false,BETLAST=0,BETGEN=null;
+const betNow=()=>typeof performance!=='undefined'&&performance.now?performance.now():Date.now();
+function betStep(){if(!BETGEN)return;const t0=betNow();let r;try{while(betNow()-t0<10){r=BETGEN.next();if(r.done)break}}catch(e){BETGEN=null;BETBUSY=false;return}
+if(r&&r.done){BETGEN=null;BETBUSY=false;BETLAST=Date.now();if(tab=='o'&&MS=='bet')render()}else setTimeout(betStep,0)}
+function betReady(){const sig=betSig();if(BETC&&BETC.sig==sig)return BETC.mk;if(!BETBUSY){BETBUSY=true;const wait=BETC?Math.max(40,8000-(Date.now()-BETLAST)):40;setTimeout(()=>{BETGEN=betMarketsG();betStep()},wait)}return BETC?BETC.mk:null} // priced in small slices; while scores are flowing in, repriced at most every 8 seconds
+
+const betRun=g=>{let r;while(!(r=g.next()).done);return r.value};
+function betMarkets(){const sig=betSig();if(BETC&&BETC.sig==sig)return BETC.mk;return betRun(betMarketsG())}
+function* betMarketsG(){const sig=betSig();
+const M=betModel(),R=betRounds(M),net=yield*betSimNet(R,M.K),ev=yield*betSimEvents(),o=winOdds(),mk=[],team=n=>{for(let ti=0;ti<2;ti++)if(S.teams[ti].p.indexOf(n)>=0)return ti;return 0};
+const norm=obj=>{const s=Object.values(obj).reduce((a,b)=>a+b,0)||1;return Object.keys(obj).map(k=>({id:k,p:obj[k]/s}))};
+const mkSel=(id,title,sub,sels,vig,extra)=>{const rs=betResolve(id),open=rs.st=='open';mk.push(Object.assign({id,title,sub,vig,st:rs.st,win:rs.win||[],sels:sels.map(s=>Object.assign({},s,{price:rs.st=='open'?betPriceNum(s.p,vig):null})).sort((a,b)=>b.p-a.p)},extra||{}))};
+mkSel('cup','Cup winner','Which team wins the Ryder Cup',[{id:'A',label:S.teams[0].n,ti:0,p:o.a},{id:'B',label:S.teams[1].n,ti:1,p:o.b},{id:'T',label:'Tie',ti:-1,p:o.t}],ODD_VIG);
+const pl=(obj)=>norm(obj).map(x=>({id:x.id,label:x.id,ti:team(x.id),p:x.p}));
+mkSel('lowWk','Lowest net round of the weekend','One round, all three days',pl(net.wk),BET_VIG_FUT);
+DAYS.forEach(d=>mkSel('low'+d,'Lowest net round, '+d,'Best single round that day',pl(net[d]),BET_VIG_FUT));
+['Friday','Saturday'].forEach(d=>{const sd=betSimBB(R,M.K,d);if(!sd){mk.push({id:'bb'+d,title:'Best ball team, '+d,sub:'Opens when the '+d+' lineups are set',st:'wait',sels:[],vig:BET_VIG_FUT,win:[]});return}
+ const lbl=x=>x.pis.map(pi=>S.teams[x.ti].p[pi]).join(' / ');mkSel('bb'+d,'Best ball team, '+d,'Lowest best ball net score',sd.sides.map(x=>({id:x.id,label:lbl(x),ti:x.ti,p:sd.p[x.id]||0})),BET_VIG_FUT)});
+[['sun','Sunshine','Most points on the winning team'],['ger','Gerry Bertier','Most points on the losing team'],['alan','Alan Bosley','Fewest points on the losing team']].forEach(([k,t,s])=>mkSel(k,t,s,norm(ev[k]).map(x=>({id:x.id,label:x.id,ti:team(x.id),p:x.p})),BET_VIG_FUT));
+BETC={sig,mk,M};return mk}
+
+const fmtAm=n=>n>0?'+'+n:'\u2212'+(-n);
+const cleanBet=(id,d)=>{if(!/^[A-Za-z0-9_-]{1,40}$/.test(id)||!d)return null;const w=String(d.w||''),m=String(d.m||''),s=String(d.s||'');if(!/^[A-Za-z0-9 .'\-]{1,24}$/.test(w)||!/^[A-Za-z]{2,12}$/.test(m)||!s||s.length>40)return null;const k=Number(d.k),o=Number(d.o);if(!Number.isInteger(k)||k<1||k>100000||!Number.isInteger(o)||(o>-100&&o<100)||Math.abs(o)>100000)return null;return{id,w,m,s,k,o,p:+d.p||0,t:+d.t||0}};
+function betSetWho(n){n=String(n||'').replace(/[^A-Za-z0-9 .'\-]/g,'').trim().slice(0,24);if(!n)return;BETWHO=n;try{localStorage.setItem('rbc_bettor',n)}catch(e){}BETMSG='';render()}
+function betWhoClear(){BETWHO='';try{localStorage.removeItem('rbc_bettor')}catch(e){}BETSEL=null;render()}
+function betTab(t){BETTAB=t;BETMSG='';render();scrollTo(0,0)}
+function betMore(id){BETOPEN[id]=!BETOPEN[id];render()}
+function betPick(mid,sel){const mk=betMarkets().find(m=>m.id==mid),s=mk&&mk.sels.find(x=>x.id==sel);if(!s||!s.price)return;BETSEL={m:mid,s:sel,price:s.price,p:s.p,label:s.label,title:mk.title};BETSTAKE='';BETMSG='';render()}
+function betSlipClose(){BETSEL=null;BETMSG='';render()}
+function betStake(v){BETSTAKE=String(v);render()}
+function betStakeIn(v){BETSTAKE=String(v).replace(/[^0-9]/g,'').slice(0,6);const w=document.getElementById('bsw');if(w){const s=Math.floor(+BETSTAKE)||0,o=BETSEL?BETSEL.price:0,t=document.getElementById('bsret');if(t&&o)t.textContent=s?'To win '+Math.round(s*(betDec(o)-1)*100)/100+' \u00b7 returns '+Math.round(s*betDec(o)*100)/100:'Enter a stake'}}
+function betPlace(){const cfg=betCfg(),sel=BETSEL;if(!sel)return;const err=m=>{BETMSG=m;render()};
+const mk=betMarkets().find(m=>m.id==sel.m),s=mk&&mk.sels.find(x=>x.id==sel.s);
+if(!BETWHO)return err('Pick who you are first.');if(S.closed)return err('The event is closed.');if(VIEWER||STALE)return err(VIEWER?'This phone is view only. Enter the access code to bet.':'Update the app to keep betting.');if(!cfg.open)return err('Betting is closed.');
+if(!mk||mk.st!='open'||!s||!s.price)return err('That line is no longer open.');
+const stake=Math.floor(+BETSTAKE);if(!(stake>=1))return err('Enter a stake.');if(stake>cfg.max)return err('The most you can bet is '+cfg.max+' credits.');
+const bank=betBank(BETWHO);if(stake>bank.avail)return err('You have '+Math.floor(bank.avail)+' credits available.');
+if(s.price!==sel.price){sel.price=s.price;return err('The odds just moved to '+fmtAm(s.price)+'. Tap Place bet again to accept.')}
+const doc={w:BETWHO,m:sel.m,s:sel.s,k:stake,o:s.price,p:+s.p.toFixed(5),t:Date.now(),v:1};
+if(PRACTICE||!DB){(S.betsLocal=S.betsLocal||[]).push(Object.assign({id:'l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)},doc));BETSEL=null;BETMSG='Bet placed.';save();render();return}
+if(REGS!='ok'&&REGS!='legacy')return err('Still connecting. Try again in a moment.');
+BETMSG='Placing your bet\u2026';render();
+DB.collection('bets').add(doc).then(()=>{BETSEL=null;BETMSG='Bet placed.';render()}).catch(e=>{BETMSG=e&&e.code=='permission-denied'?'Betting is not switched on in the database yet. The commissioner needs to publish the updated firestore.rules.':'Could not place the bet. Check your connection and try again.';render()})}
+function betVoid(id,btn){if(!btn.dataset.c){btn.dataset.c=1;btn.textContent='Tap again to void';return}
+if(PRACTICE||!DB){S.betsLocal=(S.betsLocal||[]).filter(b=>b.id!=id);save();render();return}DB.collection('bets').doc(id).delete().catch(()=>{BETMSG='Could not void that bet.';render()})}
+function betAdminSet(k,v){S.bet=S.bet||{};if(k=='open')S.bet.open=!!v;else{const n=Math.max(1,Math.min(1000000,Math.floor(+v)||0));if(n)S.bet[k]=n}save();render()}
+const betTeamDot=ti=>ti==0?'var(--red)':ti==1?'var(--teal)':'#b9a98a';
+const betStatus=mk=>mk.st=='settled'?['Settled','set']:mk.st=='void'?['Void','set']:mk.st=='wait'?['Not open yet','wait']:mk.sels.some(s=>s.p>=.996)?['Awaiting result','wait']:['Open','open'];
+function betCard(mk){const cfg=betCfg(),st=betStatus(mk),can=mk.st=='open'&&cfg.open&&!S.closed&&BETWHO,all=BETOPEN[mk.id],list=mk.id=='cup'||all?mk.sels:mk.sels.slice(0,4);
+let h=`<div class="bm"><div class="bmh"><b>${esc(mk.title)}</b><span class="bst ${st[1]}">${st[0]}</span></div><small class="mu">${esc(mk.sub)}</small>`;
+if(mk.st=='wait')return h+'</div>';
+if(mk.st=='settled'||mk.st=='void'){h+=mk.st=='void'?'<p class="mu" style="margin:8px 0 0">No winner, so every bet on this line was refunded.</p>':`<p style="margin:8px 0 0"><b>Winner${mk.win.length>1?'s (dead heat)':''}:</b> ${mk.win.map(w=>esc(mk.sels.find(s=>s.id==w)?mk.sels.find(s=>s.id==w).label:w)).join(', ')}</p>`;return h+'</div>'}
+h+=list.map(s=>{const pr=s.price,txt=pr===null?'OFF':pr===0?'\u2713':fmtAm(pr),live=mk.st=='open'&&pr;return `<button class="bsel" ${live&&can?`onclick="betPick('${mk.id}','${esc(s.id).replace(/'/g,'')}')"`:'disabled'}><i style="background:${betTeamDot(s.ti)}"></i><span>${esc(s.label)}${mk.id!='cup'&&mk.id.slice(0,2)!='bb'?`<small>${esc(S.teams[s.ti]?S.teams[s.ti].n:'')}</small>`:''}</span>${betPill('b:'+mk.id+':'+s.id,s.p,mk.vig,s.ti,mk.title+', '+s.label)}</button>`}).join('');
+if(mk.sels.length>list.length||all&&mk.sels.length>4)h+=`<div class="omore"><button onclick="betMore('${mk.id}')">${all?'Show fewer':'Show all '+mk.sels.length} \u203a</button></div>`;
+return h+'</div>'}
+const betPill=(key,p,vig,ti,label)=>oPill(key,p,ti==0?'r':ti==1?'t':'m',label,vig);
+function betSlipHtml(){const s=BETSEL;if(!s)return '';const cfg=betCfg(),bank=betBank(BETWHO),st=Math.floor(+BETSTAKE)||0,chips=[10,25,50,100].filter(x=>x<=cfg.max);
+return `<div class="bsw" id="bsw" onclick="betSlipClose()"><div class="bs" role="dialog" aria-modal="true" aria-label="Bet slip" onclick="event.stopPropagation()"><div class="bsh"><b>${esc(s.title)}</b><button onclick="betSlipClose()" aria-label="Close bet slip">\u2715</button></div><div class="bsr"><span>${esc(s.label)}</span><span class="opl ${'m'} sm">${fmtAm(s.price)}</span></div>
+<div class="bch">${chips.map(x=>`<button onclick="betStake(${x})">${x}</button>`).join('')}<button onclick="betStake(${Math.max(0,Math.min(cfg.max,Math.floor(bank.avail)))})">Max</button></div>
+<label class="bin"><span>Stake (credits)</span><input inputmode="numeric" pattern="[0-9]*" value="${esc(BETSTAKE)}" oninput="betStakeIn(this.value)" aria-label="Stake in credits" placeholder="0"></label>
+<p class="mu" id="bsret" style="margin:6px 0 8px">${st?'To win '+Math.round(st*(betDec(s.price)-1)*100)/100+' \u00b7 returns '+Math.round(st*betDec(s.price)*100)/100:'Enter a stake'}</p>
+${BETMSG?`<p class="berr" role="status">${esc(BETMSG)}</p>`:''}<button class="bgo" onclick="betPlace()">Place bet</button><p class="mu" style="margin:8px 0 0;font-size:12px">${Math.floor(bank.avail)} credits available \u00b7 max ${cfg.max} per bet</p></div></div>`}
+function betMine(){const mks=betMarkets(),L=betList().filter(b=>b.w==BETWHO).sort((a,b)=>b.t-a.t);if(!L.length)return `<div class="card"><p class="mu" style="margin:0">No bets yet. Tap a line on the Lines tab to place one.</p></div>`;
+return L.map(b=>{const mk=mks.find(m=>m.id==b.m),s=mk&&mk.sels.find(x=>x.id==b.s),o=betOut(b),lab=s?s.label:b.s,t={open:['Open','open'],won:['Won','won'],dead:['Dead heat','won'],lost:['Lost','lost'],void:['Refunded','set']}[o.st];
+return `<div class="card bmy"><div class="bmh"><b>${esc(mk?mk.title:b.m)}</b><span class="bst ${t[1]}">${t[0]}</span></div><p style="margin:4px 0 0">${esc(lab)} <b>${fmtAm(b.o)}</b></p><p class="mu" style="margin:2px 0 0">${b.k} credits${o.st=='open'?' \u00b7 would return '+Math.round(b.k*betDec(b.o)*100)/100:o.st=='lost'?' \u00b7 lost':' \u00b7 '+(o.profit>=0?'+':'\u2212')+Math.abs(Math.round(o.profit*100)/100)+' credits'}</p></div>`}).join('')}
+function betBoard(){const who=[...new Set(betList().map(b=>b.w))],rows=who.map(w=>Object.assign({w},betBank(w))).sort((a,b)=>b.total-a.total);if(!rows.length)return `<div class="card"><p class="mu" style="margin:0">Nobody has bet yet.</p></div>`;
+return `<div class="card"><table class="lbt"><thead><tr><th>#</th><th class="l">Bettor</th><th>Credits</th><th>Profit</th><th>W-L</th></tr></thead><tbody>${rows.map((r,i)=>`<tr${r.w==BETWHO?' class="me"':''}><td>${i+1}</td><td class="l">${esc(r.w)}</td><td>${Math.round(r.total)}</td><td style="color:var(--${r.prof>0?'tealt':r.prof<0?'redt':'ink'})">${r.prof>0?'+':r.prof<0?'\u2212':''}${Math.abs(Math.round(r.prof))}</td><td>${r.w}-${r.l}</td></tr>`.replace(/<td>(\d+)-(\d+)<\/td>$/,'<td>'+r.w+'-'+r.l+'</td>')).join('')}</tbody></table></div>`}
+function betPage(){if(PRACTICE){}const cfg=betCfg();let h=`<div class="card"><h2>Betting</h2><p class="mu" style="margin:0 0 8px">Play credits only. Lines are priced from past results and move as scores come in.</p>`;
+if(!BETWHO){const names=S.teams.flatMap(t=>t.p);return h+`<p style="margin:0 0 8px"><b>Who are you?</b></p><div class="bwho">${names.map(n=>`<button onclick="betSetWho(${JSON.stringify(n).replace(/"/g,'&quot;')})">${esc(n)}</button>`).join('')}</div><label class="bin" style="margin-top:10px"><span>Someone else</span><input id="bwo" maxlength="24" placeholder="Your name" aria-label="Your name"></label><button class="op go" style="margin:8px 0 0" onclick="betSetWho(document.getElementById('bwo').value)">Use this name</button></div>`}
+const bk=betBank(BETWHO);h+=`<div class="bme"><span>Betting as <b>${esc(BETWHO)}</b></span><button class="lk" onclick="betWhoClear()">Change</button></div><div class="bbk"><div><small>Available</small><b>${Math.floor(bk.avail)}</b></div><div><small>In play</small><b>${Math.round(bk.open)}</b></div><div><small>Profit</small><b style="color:var(--${bk.prof>0?'tealt':bk.prof<0?'redt':'ink'})">${bk.prof>0?'+':bk.prof<0?'\u2212':''}${Math.abs(Math.round(bk.prof))}</b></div></div>`;
+if(!cfg.open)h+=`<p class="mu" style="margin:8px 0 0"><b>Betting is closed.</b></p>`;else if(S.closed)h+=`<p class="mu" style="margin:8px 0 0"><b>The event is closed.</b></p>`;if(BETMSG&&!BETSEL)h+=`<p class="mu" style="margin:8px 0 0"><b>${esc(BETMSG)}</b></p>`;h+=`</div><div class="bt" role="tablist">${[['l','Lines'],['m','My bets'],['b','Leaderboard']].map(([k,t])=>`<button role="tab" aria-selected="${BETTAB==k}" class="${BETTAB==k?'on':''}" onclick="betTab('${k}')">${t}</button>`).join('')}</div>`;
+const mkl=betReady();if(!mkl)return h+`<div class="card"><p class="mu" style="margin:0">Pricing the lines\u2026</p></div>`;
+h+=BETTAB=='m'?betMine():BETTAB=='b'?betBoard():mkl.map(betCard).join('')+`<p class="mu" style="margin:0 2px 12px;font-size:13px">Odds include a built-in margin like a sportsbook. A tie for the win is a dead heat: the stake is split between the winners. Credits are for fun only and are not real money.</p>`;
+return h+betSlipHtml()}
+function betAdmin(){const cfg=betCfg(),L=betList().slice().sort((a,b)=>b.t-a.t).slice(0,12),mks=BETC?BETC.mk:[];
+return `<div class="card"><h2>Betting</h2><p class="mu">Play credits for the Betting menu. Each person starts with the amount below.</p><div class="hi" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>Starting credits</span><input class="opt" type="number" min="1" value="${cfg.start}" onchange="betAdminSet('start',this.value)" aria-label="Starting credits" style="width:96px"></div><div class="hi" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>Most per bet</span><input class="opt" type="number" min="1" value="${cfg.max}" onchange="betAdminSet('max',this.value)" aria-label="Most credits per bet" style="width:96px"></div><button class="op" style="margin:10px 0 0;text-align:center" onclick="betAdminSet('open',${!cfg.open})">${cfg.open?'Close betting':'Open betting'}</button>${L.length?`<h3 style="margin:14px 0 6px;font-size:15px">Latest bets</h3>`+L.map(b=>`<div class="hi" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="min-width:0"><b>${esc(b.w)}</b> \u00b7 ${esc(b.m)} \u00b7 ${esc(b.s)}<br><small class="mu">${b.k} @ ${fmtAm(b.o)}</small></span><button class="rs" style="margin:0;padding:6px 10px;min-height:0;font-size:13px" onclick="betVoid('${esc(b.id)}',this)">Void</button></div>`).join(''):''}</div>`}
 function stand(c){WCX=null;const [a,b]=S.teams,tot=S.matches.reduce((x,m)=>x+m.pv.reduce((p,q)=>p+q,0),0),d=Math.abs(c.t[0]-c.t[1]);
 const st=!c.n?'Tap a box below to score a point':c.t[0]==c.t[1]?'All square':`${esc(S.teams[c.t[0]>c.t[1]?0:1].n)} leads by ${d}`;
 const pj=projd(),rc=recs(),fin=[],inp=[],up=[];S.matches.forEach((m,mi)=>{(mFin(m)?fin:thru(m)||m.s.some(x=>x)?inp:up).push(mi)});
@@ -1315,6 +1480,7 @@ ${rbConfigCard()}
 <div class="card"><h2>Rules text</h2><textarea class="in" oninput="S.rules=this.value;save()">${esc(S.rules)}</textarea></div>
 <div class="card"><h2>Shared settings</h2><p class="mu">The Sunday course, payout amounts and Power Ranking settings are the same on every phone. Change them on any phone with the edit code and everyone follows. The first time, tap the button on the phone that has the right settings.</p><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Shared with every phone</span><b>${typeof LP['settings.settings']==='string'?'Yes':'Not yet'}</b></div><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Sunday course</span><b>${S.crs.Sunday?esc(S.crs.Sunday):'Not chosen'}</b></div><button class="op go" style="margin-top:10px" onclick="shareSettings()">Use this phone's settings for everyone</button>${SMSG?`<p class="mu" style="margin:10px 0 0">${esc(SMSG)}</p>`:''}</div>
 ${closeCard()}
+${betAdmin()}
 ${secCard()}
 ${watchCard()}
 ${backupCard()}
@@ -1336,7 +1502,7 @@ return h+`</div>`}
 function fmt(d,v){S.matches.forEach(m=>{if(m.d==d)m.f=v});save()}
 function pv(d,k,v){const x=parseFloat(v);S.matches.forEach(m=>{if(m.d==d)m.pv[k]=isNaN(x)?0:x});save()}
 // ---- Backup / restore (Admin). A backup is one small JSON file with everything the event holds: rosters, lineups, scores, tees, courses, payouts, settings and the log. Photos are not included.
-const BK_KEYS=['event','teams','matches','sc','tees','crs','rules','pay','awards','rbpr','allow','log','archive','closed'];
+const BK_KEYS=['event','teams','matches','sc','tees','crs','rules','pay','awards','rbpr','allow','log','archive','closed','bet','betsLocal'];
 function backupData(){const s={};BK_KEYS.forEach(k=>{if(S[k]!==undefined)s[k]=JSON.parse(JSON.stringify(S[k]))});return{app:'ronnie-bass-classic',version:1,saved:new Date().toISOString(),S:s}}
 function bkName(){const d=new Date(),z=n=>String(n).padStart(2,'0');return 'ronnie-bass-backup-'+d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'-'+z(d.getHours())+z(d.getMinutes())+'.json'}
 async function downloadBackup(){try{const txt=JSON.stringify(backupData()),name=bkName(),f=(window.File&&new File([txt],name,{type:'application/json'}))||null;
@@ -1697,7 +1863,7 @@ function clean(k){if(DRT[k]){delete DRT[k];dsave()}}
 const pend=k=>TM[k]||BZ[k]||(DRT[k]&&!isRO());
 function lbInit(){S.matches.forEach((m,i)=>fkeys(i).forEach(f=>{LBASE['m'+i+'.'+f]=fval(i,f)}))}
 function clearStale(i,field){const m=S.matches[i];if(!m)return;if(field=='struct'){const d=mk().matches[i];Object.assign(m,{l:d.l,s:d.s,final:null})}else fapply(i,field,'null')}
-function revert(docId,field){const key=docId+'.'+field,sv=LP[key];try{if(field=='settings'){if(typeof sv==='string'){const p=JSON.parse(sv);if(p.crs)S.crs=p.crs;if(p.pay)S.pay=p.pay;if(p.rbpr)S.rbpr=p.rbpr;if('closed' in p)S.closed=p.closed||null;if(p.archive)S.archive=p.archive}}else if(field=='meta'){if(typeof sv==='string'){const p=JSON.parse(sv);S.event=p.event;S.teams=p.teams;S.rules=p.rules;if(p.allow&&typeof p.allow==='object')S.allow={bb:+p.allow.bb||90,mp:+p.allow.mp||100};fixRoster();fixNames()}}
+function revert(docId,field){const key=docId+'.'+field,sv=LP[key];try{if(field=='settings'){if(typeof sv==='string'){const p=JSON.parse(sv);if(p.crs)S.crs=p.crs;if(p.pay)S.pay=p.pay;if(p.rbpr)S.rbpr=p.rbpr;if('closed' in p)S.closed=p.closed||null;if(p.archive)S.archive=p.archive;if('bet' in p)S.bet=p.bet||undefined}}else if(field=='meta'){if(typeof sv==='string'){const p=JSON.parse(sv);S.event=p.event;S.teams=p.teams;S.rules=p.rules;if(p.allow&&typeof p.allow==='object')S.allow={bb:+p.allow.bb||90,mp:+p.allow.mp||100};fixRoster();fixNames()}}
 else{const mi=+docId.slice(1);if(typeof sv==='string'&&sv!=='null')fapply(mi,field,sv);else clearStale(mi,field)}}catch(e){}}
 function flushNow(){try{if(!DB||roBase()||(REGS!='ok'&&REGS!='legacy'))return;pa();Object.keys(TM).forEach(k=>{const j=k.indexOf('.');clearTimeout(TM[k]);delete TM[k];fl(k.slice(0,j),k.slice(j+1))})}catch(e){}}
 
@@ -1723,7 +1889,7 @@ if(field=='struct'){if(m.d!==v.d)return;Object.assign(m,{f:v.f,n:v.n,pv:v.pv,l:v
 const[pre,ti,pi]=field.split('_'),k=ti+'_'+pi;
 if(pre=='sc'){const o=S.sc[m.d]=S.sc[m.d]||{};if(v==null)delete o[k];else o[k]=v}
 else{const t=S.tees[m.d]=S.tees[m.d]||{};if(v==null)delete t[k];else t[k]=v}}
-const jm=k=>k=='meta'?JSON.stringify({event:S.event,teams:S.teams,rules:S.rules,allow:S.allow}):k=='settings'?JSON.stringify({crs:S.crs,pay:S.pay,rbpr:S.rbpr||{},closed:S.closed||null,archive:S.archive||{}}):null;
+const jm=k=>k=='meta'?JSON.stringify({event:S.event,teams:S.teams,rules:S.rules,allow:S.allow}):k=='settings'?JSON.stringify({crs:S.crs,pay:S.pay,rbpr:S.rbpr||{},closed:S.closed||null,archive:S.archive||{},bet:S.bet||null}):null;
 const curVal=(d,f)=>(f=='meta'||f=='settings')?jm(f):fval(+d.slice(1),f); // meta stays whole-doc (rarely edited by more than one admin at once)
 function applyMatch(i,p){ // legacy whole-doc shape, kept so an old/local-only save still loads
 const m=S.matches[i];if(!m)return;const o=S.sc[m.d]||(S.sc[m.d]={}),t=S.tees[m.d]||(S.tees[m.d]={});
@@ -1765,7 +1931,7 @@ if(pend(key)){if(BZ[key])HELD[key]={val,v};return false} // our own change is wa
 try{
   if(field=='settings'||field=='meta'){const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){PENDM[field]={val,v};return false} // someone is typing here: keep the update and apply it when they finish
     delete PENDM[field];}
-  if(field=='settings'){const p=JSON.parse(val),oc=JSON.stringify(S.crs);if(p.crs&&typeof p.crs==='object')S.crs=p.crs;if(p.pay&&typeof p.pay==='object')S.pay=p.pay;if(p.rbpr&&typeof p.rbpr==='object')S.rbpr=p.rbpr;if('closed' in p)S.closed=p.closed||null;if(p.archive&&typeof p.archive==='object')S.archive=p.archive;if(JSON.stringify(S.crs)!==oc)S.matches.forEach((m,mi)=>{if(m.d=='Sunday'&&WROTE[mi])sync(m,mi)})}
+  if(field=='settings'){const p=JSON.parse(val),oc=JSON.stringify(S.crs);if(p.crs&&typeof p.crs==='object')S.crs=p.crs;if(p.pay&&typeof p.pay==='object')S.pay=p.pay;if(p.rbpr&&typeof p.rbpr==='object')S.rbpr=p.rbpr;if('closed' in p)S.closed=p.closed||null;if(p.archive&&typeof p.archive==='object')S.archive=p.archive;if('bet' in p)S.bet=p.bet||undefined;if(JSON.stringify(S.crs)!==oc)S.matches.forEach((m,mi)=>{if(m.d=='Sunday'&&WROTE[mi])sync(m,mi)})}
   else if(field=='meta'){
     const p=JSON.parse(val);S.event=p.event;S.teams=p.teams;S.rules=p.rules;if(p.allow&&typeof p.allow==='object')S.allow={bb:+p.allow.bb||90,mp:+p.allow.mp||100};fixRoster();fixNames()}
   else{const mi=+docId.slice(1);fapply(mi,field,val);const m=S.matches[mi];
@@ -1825,10 +1991,11 @@ const subSet=()=>DB.doc('meta/settings').onSnapshot(d=>{rt.set=0;const dd=d.exis
 if(!dd||dd.j===undefined){if(f3&&!d.metadata.fromCache){f3=0;if(LP['settings.settings']===undefined)LP['settings.settings']=null}return}
 const c=apField('settings','settings',dd.j,dd.v);if(!d.metadata.fromCache)f3=0;if(c)rr();else if(!d.metadata.fromCache)pa()},bad('set',subSet));
 subMatch();subMeta();subSet();
+DB.collection('bets').onSnapshot(sn=>{BETS=sn.docs.map(d=>cleanBet(d.id,d.data())).filter(Boolean);BETERR='';rr()},e=>{BETERR=e&&e.code||'err'});
 DB.collection('playerphotos').onSnapshot(sn=>{let ch=false;sn.docs.forEach(d=>{const data=d.data(),im=data&&/^[01]_[0-6]$/.test(d.id)?SAFEIMG(data.img):'';if(im&&PPICS[d.id]!==im){PPICS[d.id]=im;ch=true}});if(ch){savePPics();rr()}},()=>{});
 pa()}
-function more(){if(MS)return `<button class="add" style="margin-bottom:12px" onclick="MS=null;render()">← More</button>`+(MS=='h'?history():MS=='r'?rules():MS=='th'?themePage():MS=='i'?installPage():MS=='ph'?photosPage():MS=='pw'?rbPage():MS=='pwd'?rbDetail(PWD.ti,PWD.pi):MS=='pair'?rbPairPage():MS=='lb'?leaderboardPage():MS=='pay'?payoutsPage():MS=='rc'?recapPage():MS=='arc'?archivePage(ARCY):VIEWER?'':admin());
-return `<div class="card" style="padding:4px 14px">`+[['pw','Power rankings','All 14 players ranked 1 to 14'],['h','History','All-time records and the scoring log'],['pay','Payouts','Who wins the side-bet pots'],['r','Rules','Format, scoring and awards'],['ph','Photo album','Trip photos, one album per year'],['th','Appearance','Light, dark or match your device'],['i','Install app','Add to your home screen'],['a','Admin','Event name, access code, Nassau points and reset']].filter(a=>!(VIEWER&&a[0]=='a')).concat(VIEWER?[['si','Scorer sign-in','Switch this phone to scoring']]:[]).map(([k,t,d])=>`<button class="mi" onclick="${k=='si'?'scorerSignIn()':k=='cc'?'changeCode()':`MS='${k}';${k=='ph'?'pSub(PY);':''}render();scrollTo(0,0)`}"><span><b>${t}</b><small>${d}</small></span><i>›</i></button>`).join('')+`</div>`}
+function more(){if(MS)return `<button class="add" style="margin-bottom:12px" onclick="MS=null;render()">← More</button>`+(MS=='h'?history():MS=='r'?rules():MS=='th'?themePage():MS=='i'?installPage():MS=='ph'?photosPage():MS=='pw'?rbPage():MS=='pwd'?rbDetail(PWD.ti,PWD.pi):MS=='pair'?rbPairPage():MS=='lb'?leaderboardPage():MS=='pay'?payoutsPage():MS=='bet'?betPage():MS=='rc'?recapPage():MS=='arc'?archivePage(ARCY):VIEWER?'':admin());
+return `<div class="card" style="padding:4px 14px">`+[['pw','Power rankings','All 14 players ranked 1 to 14'],['h','History','All-time records and the scoring log'],['pay','Payouts','Who wins the side-bet pots'],['bet','Betting','Play-credit lines on the weekend'],['r','Rules','Format, scoring and awards'],['ph','Photo album','Trip photos, one album per year'],['th','Appearance','Light, dark or match your device'],['i','Install app','Add to your home screen'],['a','Admin','Event name, access code, Nassau points and reset']].filter(a=>!(VIEWER&&a[0]=='a')).concat(VIEWER?[['si','Scorer sign-in','Switch this phone to scoring']]:[]).map(([k,t,d])=>`<button class="mi" onclick="${k=='si'?'scorerSignIn()':k=='cc'?'changeCode()':`MS='${k}';${k=='ph'?'pSub(PY);':''}render();scrollTo(0,0)`}"><span><b>${t}</b><small>${d}</small></span><i>›</i></button>`).join('')+`</div>`}
 let INSTALLP=null,INSTALLED=false;
 try{
  if(typeof window!=='undefined'){

@@ -2,48 +2,180 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ---- Event access code, stored once by the commissioner via the Firebase console. ----
-    // Example document to create by hand: config/access  ->  { code: "whatever-you-picked" }
-    // This document is intentionally NOT client-writable — only readable, so rules below can
-    // check a write's `code` field against it. Change it from the console if it ever leaks.
-    match /config/access {
-      allow read: if true;
-      allow write: if false;
+    // ======================================================================================
+    // Ronnie Bass Classic: locked-down rules (build 24 and later)
+    //
+    // How access works
+    //   * Everyone can READ scores, so the watch link works without a code.
+    //   * To WRITE, a phone first registers itself once in `writers/{its own anonymous id}`,
+    //     sending the event access code. The rules check that code against `config/access`.
+    //     The code is never saved in the scores or settings, and `writers` and `config` can
+    //     not be read by any phone, so the code cannot be read back out of the database.
+    //   * Every write to scores, settings and photos also requires that the phone's
+    //     registration used the CURRENT code. If you change `config/access`, every phone is
+    //     switched off until it enters the new code (More > Admin > Change access code).
+    //   * Writes can only touch the fields the app really uses, so a stray or hostile write
+    //     cannot add anything else.
+    // ======================================================================================
+
+    function signedIn() { return request.auth != null; }
+    function secret() { return get(/databases/$(database)/documents/config/access).data.code; }
+    function isEditor() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/writers/$(request.auth.uid))
+        && get(/databases/$(database)/documents/writers/$(request.auth.uid)).data.code == secret();
     }
 
-    function validCode() {
-      return request.resource.data.code == get(/databases/$(database)/documents/config/access).data.code;
+    // The event code lives here. No phone may read or write it (the rules above can still use it).
+    // Set it by hand in the Firebase console: collection config, document access, field code.
+    match /config/{doc} {
+      allow read, write: if false;
     }
 
-    // ---- Scoring data: anyone can read live scores (so a browser without the code can still
-    // watch the leaderboard). Writes require the event's access code and a signed-in device.
-    // The app writes one player's field at a time (see README), which is what actually stops
-    // one golfer's update from overwriting another's — these rules are the access gate, not
-    // the conflict protection; that lives in the app's field-level sync logic.
+    // A phone registers itself. A wrong code is refused. Nobody can read this list.
+    match /writers/{uid} {
+      allow read, delete: if false;
+      allow create, update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['code', 'ts'])
+        && request.resource.data.code is string
+        && request.resource.data.code == secret();
+    }
+
+    // Scores: one record per match (m0 to m12), one field per player's scores and tees, plus the lineup.
+    // 'code' stays in the list only so records written by the old app can be cleaned by the new one.
     match /match/{matchId} {
       allow read: if true;
-      allow create, update: if request.auth != null && validCode();
+      allow create, update: if isEditor()
+        && matchId.matches('m([0-9]|1[0-2])')
+        && request.resource.data.keys().hasOnly([
+          'struct',
+          'struct_v',
+          'code',
+          'sc_0_0',
+          'sc_0_0_v',
+          'sc_0_1',
+          'sc_0_1_v',
+          'sc_0_2',
+          'sc_0_2_v',
+          'sc_0_3',
+          'sc_0_3_v',
+          'sc_0_4',
+          'sc_0_4_v',
+          'sc_0_5',
+          'sc_0_5_v',
+          'sc_0_6',
+          'sc_0_6_v',
+          'sc_1_0',
+          'sc_1_0_v',
+          'sc_1_1',
+          'sc_1_1_v',
+          'sc_1_2',
+          'sc_1_2_v',
+          'sc_1_3',
+          'sc_1_3_v',
+          'sc_1_4',
+          'sc_1_4_v',
+          'sc_1_5',
+          'sc_1_5_v',
+          'sc_1_6',
+          'sc_1_6_v',
+          'te_0_0',
+          'te_0_0_v',
+          'te_0_1',
+          'te_0_1_v',
+          'te_0_2',
+          'te_0_2_v',
+          'te_0_3',
+          'te_0_3_v',
+          'te_0_4',
+          'te_0_4_v',
+          'te_0_5',
+          'te_0_5_v',
+          'te_0_6',
+          'te_0_6_v',
+          'te_1_0',
+          'te_1_0_v',
+          'te_1_1',
+          'te_1_1_v',
+          'te_1_2',
+          'te_1_2_v',
+          'te_1_3',
+          'te_1_3_v',
+          'te_1_4',
+          'te_1_4_v',
+          'te_1_5',
+          'te_1_5_v',
+          'te_1_6',
+          'te_1_6_v'
+        ])
+        && (!('struct' in request.resource.data) || request.resource.data.struct.size() < 50000);
       allow delete: if false;
     }
 
+    // Roster/names/rules (main) and shared settings, closed-event flag and archive (settings).
     match /meta/{docId} {
       allow read: if true;
-      allow create, update: if request.auth != null && validCode();
+      allow create, update: if isEditor()
+        && docId in ['main', 'settings']
+        && request.resource.data.keys().hasOnly(['j', 'v', 'build', 'code'])
+        && request.resource.data.get('j', '').size() < 600000;
       allow delete: if false;
     }
 
-    // ---- Photos: lower stakes, left open to any signed-in device so uploads never get stuck
-    // behind the event code prompt. Tighten this the same way as above if you want it locked too.
-    match /playerphotos/{docId} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
+    // Trip photos: editors only, and only well-formed records (a real picture address, a number for the year).
     match /photos/{docId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create, update: if isEditor()
+        && request.resource.data.keys().hasOnly(['year', 'img', 'url', 'path', 'thumb', 'ts', 'by'])
+        && request.resource.data.year is int
+        && request.resource.data.year >= 2024 && request.resource.data.year <= 2035
+        && request.resource.data.ts is number
+        && (!('by' in request.resource.data) || (request.resource.data.by is string && request.resource.data.by.size() <= 30))
+        && (!('img' in request.resource.data) || (request.resource.data.img is string
+              && request.resource.data.img.matches('data:image/(jpeg|png|webp);base64,.*')
+              && request.resource.data.img.size() < 400000))
+        && (!('thumb' in request.resource.data) || (request.resource.data.thumb is string
+              && request.resource.data.thumb.matches('data:image/(jpeg|png|webp);base64,.*')
+              && request.resource.data.thumb.size() < 100000))
+        && (!('url' in request.resource.data) || (request.resource.data.url is string
+              && request.resource.data.url.matches('https://firebasestorage\\.googleapis\\.com/.*')))
+        && (!('path' in request.resource.data) || (request.resource.data.path is string
+              && request.resource.data.path.matches('photos/[0-9]+/[A-Za-z0-9_.-]+')));
+      allow delete: if isEditor();
     }
 
-    // Everything else: closed by default.
+    // Headshots, one per roster position (team 0 or 1, player 0 to 6).
+    match /playerphotos/{docId} {
+      allow read: if true;
+      allow create, update: if isEditor()
+        && docId.matches('[01]_[0-6]')
+        && request.resource.data.keys().hasOnly(['img'])
+        && request.resource.data.img is string
+        && request.resource.data.img.matches('data:image/(jpeg|png|webp);base64,.*')
+        && request.resource.data.img.size() < 200000;
+      allow delete: if isEditor();
+    }
+
+    // Betting (play credits only): one record per bet, created by an editor, never changed. An editor can void one.
+    match /bets/{betId} {
+      allow read: if true;
+      allow create: if isEditor()
+        && request.resource.data.keys().hasOnly(['w', 'm', 's', 'k', 'o', 'p', 't', 'v'])
+        && request.resource.data.w is string && request.resource.data.w.size() > 0 && request.resource.data.w.size() <= 24
+        && request.resource.data.m is string && request.resource.data.m.size() <= 20
+        && request.resource.data.s is string && request.resource.data.s.size() <= 40
+        && request.resource.data.k is int && request.resource.data.k >= 1 && request.resource.data.k <= 100000
+        && request.resource.data.o is int && (request.resource.data.o >= 100 || request.resource.data.o <= -100)
+        && request.resource.data.o <= 100000 && request.resource.data.o >= -100000
+        && request.resource.data.p is number && request.resource.data.p > 0 && request.resource.data.p < 1
+        && request.resource.data.t is number
+        && request.resource.data.v == 1;
+      allow update: if false;
+      allow delete: if isEditor();
+    }
+
+    // Everything else is closed.
     match /{document=**} {
       allow read, write: if false;
     }
