@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Ronnie Bass">
+<script>try{var __t=localStorage.getItem('rbc_theme_v1')||'light',__d=document.documentElement;__d.setAttribute('data-theme',__t=='system'?'':__t);var __m=document.querySelector('meta[name=color-scheme]');if(__m)__m.setAttribute('content',__t=='system'?'light dark':__t)}catch(e){document.documentElement.setAttribute('data-theme','light')}</script>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--navy:#0B3350;--gold:#F2B62B;--red:#B03227;--teal:#1d7280;--redt:#B03227;--tealt:#1d7280;--goldt:#8a5d00;--bg:#F5E8D3;--card:#FBF4E6;--ink:#0B3350;--muted:#566673;--line:#d3c4a8}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#07202f;--card:#0d3048;--ink:#F5E8D3;--muted:#9fb2bd;--line:#245069;--redt:#f4968c;--tealt:#6fcad8;--goldt:#F2B62B}}
@@ -402,7 +403,7 @@ body.practice header{top:calc(env(safe-area-inset-top,0px) + 26px)}
 // PRACTICE: a sandbox tournament that lives only on this phone. It uses its own saved copy, never connects to the shared database, and cannot change the real event.
 const PRACTICE=(()=>{try{const s=location.search;if(/[?&]practice=(0|off)(&|$)/.test(s)||/[?&]scorer(=|&|$)/.test(s)){localStorage.removeItem('rbc_practice_on');return false}if(/[?&]practice(=1|=on|=true)?(&|$)/.test(s)){localStorage.setItem('rbc_practice_on','1');return true}return localStorage.getItem('rbc_practice_on')=='1'}catch(e){return false}})();
 const KEY=PRACTICE?'rbc_practice_v1':'rbc_v2',$=s=>document.querySelector(s);
-const BUILD=27; // bump together with CACHE in sw.js on every release; a phone running an older build than the event's is held back from saving (see STALE)
+const BUILD=28; // bump together with CACHE in sw.js on every release; a phone running an older build than the event's is held back from saving (see STALE)
 let UPDREADY=false,STALE=false,DENIED=false,RRDEF=false,PENDM={},FRESH=false,KNOWNB=0,LSET=null,SMSG='',PAIRC=null,PAIRDAY=null,PAIRMSG='';
 const HELD={};
 const VIEWER=(()=>{try{if(PRACTICE)return false;const s=location.search,w=/[?&]watch(=|&|$)/.test(s)||location.hash=='#watch';if(/[?&]scorer(=|&|$)/.test(s))localStorage.removeItem('rbc_watch');else if(w)localStorage.setItem('rbc_watch','1');return !/[?&]scorer(=|&|$)/.test(s)&&(w||localStorage.getItem('rbc_watch')=='1')}catch(e){return false}})(),roBase=()=>VIEWER||SY=='ro'||STALE,isRO=()=>roBase()||!!(typeof S==='object'&&S&&S.closed);
@@ -459,7 +460,23 @@ const LB={o:'More',a:'Admin',r:'Rules',s:'Scoreboard',m:'Matches',h:'History',l:
 function render(){try{render0()}catch(e){rerr(e)}}
 function rerr(e){try{console.error(e);lg('ERROR '+tab+(MS?'/'+MS:'')+': '+String(e&&e.message||e).slice(0,120));LV=null;MS=null;PF=null;
 $('#main').innerHTML=`<div class="card"><h2>Something went wrong</h2><p class="mu">Your scores are saved on this phone and keep syncing. Tap Reload to carry on.</p><button class="op go" onclick="location.reload()">Reload</button><button class="add" style="margin-top:8px" onclick="tab='s';render()">Go to Scoreboard</button></div>`}catch(x){}}
-function noticeHtml(){let h='';
+let CONNSHOW=false;
+function connAge(t){if(!t)return 'never';const s=Math.round((Date.now()-t)/1000);return s<60?s+' s ago':Math.round(s/60)+' min ago'}
+function connVerdict(){if(PRACTICE)return['Practice mode: nothing is sent to the event.','ok'];
+if(!DB)return[DIAG.init&&/SDK/.test(DIAG.init)?'The database library did not load, so this phone cannot connect. Check the internet connection, then reload. Scores you enter are saved on this phone.':'This phone is working on its own (not connected to the database). Scores are saved here. Check the internet connection and reload.','bad'];
+if(STALE)return['The event needs a newer version of the app. Tap Update (or reload) to get it. This phone cannot save until you do.','bad'];
+if(VIEWER)return['This phone is a watch-only phone. It shows live scores but never sends anything.','ok'];
+if(SY=='ro')return[(DENIED?'The database refused what this phone tried to save. That means the access code on this phone is wrong or out of date. Open More, Admin and enter the current access code. ':'This phone is view only. ')+'Scores are shown but nothing is saved until the code is accepted.','bad'];
+if(SY=='off')return['No internet connection right now. Everything you enter is saved on this phone and is sent as soon as the signal returns.','warn'];
+if(DIAG.auth!=='ok')return['Signing in to the database'+(DIAG.auth?' ('+DIAG.auth+')':'')+'. This phone keeps trying by itself. If it stays here, move to better signal. Scores you enter are saved on this phone meanwhile.','warn'];
+if(!DIAG.snap.match&&!DIAG.snap.meta)return['Signed in, waiting for the database to answer'+(DIAG.err.match||DIAG.err.meta?' (it said: '+((DIAG.err.match||DIAG.err.meta).code)+')':'')+'. Usually this is weak signal. If it lasts more than a minute and other phones are live, tell the commissioner the database may be refusing reads.','warn'];
+if(SY=='live')return['Connected. Live updates are arriving'+(REGS=='ok'?' and this phone is registered to save.':REGS=='legacy'?'. Saving uses the old method (the database is on the old rules or the access code was not accepted here).':'.'),'ok'];
+return['Reconnecting to the database. Scores are saved on this phone meanwhile.','warn']}
+function connCard(force){const v=connVerdict(),c={ok:'var(--teal)',warn:'var(--gold)',bad:'var(--red)'}[v[1]];
+return `<div class="card" style="border-color:${c};border-width:2px"><h2>Connection</h2><p style="margin:0 0 8px"><b>${esc(SY=='live'?(VIEWER?'Watching live':'Live'):SY=='ro'?'View only':SY=='off'?'Offline':SY=='connecting'?'Connecting':SY=='practice'?'Practice':'Local')}</b></p><p class="mu" style="margin:0 0 10px">${esc(v[0])}</p>
+${PRACTICE?'':`<div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>App build</span><b>${BUILD}</b></div><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Event requires build</span><b>${KNOWNB||'?'}</b></div><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Sign-in</span><b>${DIAG.auth||(DB?'starting':'no database')}</b></div><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Scores last received</span><b>${connAge(DIAG.snap.match)}</b></div><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Saving</span><b>${REGS=='ok'?'registered':REGS=='legacy'?'old method':'waiting'}</b></div><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Waiting to send</span><b>${Object.keys(DRT).length} change${Object.keys(DRT).length==1?'':'s'}</b></div>${DIAG.wr?`<div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Last save problem</span><b>${esc(DIAG.wr.code)} ${esc(connAge(DIAG.wr.t))}</b></div>`:''}`}
+<div style="display:flex;gap:8px;margin-top:10px"><button class="op go" style="flex:1;margin:0" onclick="HOLD=0;RT=0;regDevice();location.reload()">Reconnect</button>${force?'':`<button class="op" style="flex:1;margin:0;text-align:center" onclick="CONNSHOW=false;render()">Close</button>`}</div></div>`}
+function noticeHtml(){let h='';if(CONNSHOW)h+=connCard();
 if(UPDREADY&&!STALE)h+=`<div class="card" style="border-color:var(--gold);padding:12px 14px"><b>A new version is ready</b><p class="mu" style="margin:4px 0 10px">Reload to get the latest fixes. Nothing you entered is lost.</p><button class="op go" style="margin:0" onclick="appUpdate()">Reload now</button></div>`;
 if(STALE)h+=`<div class="card" style="border-color:var(--gold);padding:12px 14px"><b>Update available</b><p class="mu" style="margin:4px 0 10px">The event is running a newer version of the app. Update so every phone works out the same results. This phone can't save anything until you do.</p><button class="op go" onclick="appUpdate()">Update now</button></div>`;
 else if(DENIED&&!VIEWER&&SY=='ro')h+=`<div class="card" style="border-color:var(--red);padding:12px 14px"><b>Not saved</b><p class="mu" style="margin:4px 0 10px">This phone's access code wasn't accepted, so changes can't be saved and are taken back off this screen. Enter the edit code to score.</p><button class="op go" onclick="changeCode()">Enter access code</button></div>`;
@@ -1430,6 +1447,7 @@ ${rbConfigCard()}
 <div class="card"><h2>Shared settings</h2><p class="mu">The Sunday course, payout amounts and Power Ranking settings are the same on every phone. Change them on any phone with the edit code and everyone follows. The first time, tap the button on the phone that has the right settings.</p><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Shared with every phone</span><b>${typeof LP['settings.settings']==='string'?'Yes':'Not yet'}</b></div><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Sunday course</span><b>${S.crs.Sunday?esc(S.crs.Sunday):'Not chosen'}</b></div><button class="op go" style="margin-top:10px" onclick="shareSettings()">Use this phone's settings for everyone</button>${SMSG?`<p class="mu" style="margin:10px 0 0">${esc(SMSG)}</p>`:''}</div>
 ${crsCard()}
 ${closeCard()}
+${connCard(true)}
 ${secCard()}
 ${watchCard()}
 ${backupCard()}
@@ -1832,7 +1850,7 @@ function pristine(i,val){try{const D=mk().matches[i];return !!D&&val===JSON.stri
 // rr: redraw after a remote update. Batches bursts into one redraw and waits until the user has stopped tapping, so an incoming score never eats a tap.
 try{document.addEventListener&&document.addEventListener('pointerdown',()=>{LASTTAP=Date.now()},true)}catch(e){}
 function rr(){if(RRT)return;RRS=Date.now();RRT=setTimeout(function f(){if(Date.now()-LASTTAP<700&&Date.now()-RRS<3000){RRT=setTimeout(f,250);return}RRT=0;const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.type!='file'&&a.type!='button'){RRDEF=true;return}render()},(tab=='o'&&MS=='pair')?3000:250)}
-function setSy(s){SY=s;const e=$('#sy');if(e){e.textContent=s=='live'?(VIEWER?'\u25cf Watching live':'\u25cf Live'):s=='ro'?'View only':s=='off'?'\u25cf Offline (saved on this phone)':s=='connecting'?'Connecting\u2026':s=='practice'?'Practice':'Local';e.className='sy '+s}}
+function setSy(s){SY=s;const e=$('#sy');if(e){if(!e.dataset.t){e.dataset.t=1;e.setAttribute('role','button');e.tabIndex=0;e.setAttribute('aria-label','Connection status. Tap for details');const go=()=>{CONNSHOW=!CONNSHOW;render();scrollTo(0,0)};e.addEventListener('click',go);e.addEventListener('keydown',ev=>{if(ev.key=='Enter'||ev.key==' '){ev.preventDefault();go()}})}e.textContent=s=='live'?(VIEWER?'\u25cf Watching live':'\u25cf Live'):s=='ro'?'View only':s=='off'?'\u25cf Offline (saved on this phone)':s=='connecting'?'Connecting\u2026':s=='practice'?'Practice':'Local';e.className='sy '+s}}
 // ---- Field-level document shape: each match doc holds a small "struct" (lineup/format/segment results)
 // plus one score field and one tee field PER PLAYER, each with its own version stamp. Two golfers
 // editing two different players in the same match write to different fields and never collide.
@@ -1880,7 +1898,7 @@ try{
   LP[key]=val;LPV[key]=v;RT=0;HOLD=0;DENIED=false;if(/^m\d+$/.test(docId))WROTE[+docId.slice(1)]=1;if(curVal(docId,field)===val)clean(key);setSy('live');
   const hd=HELD[key];delete HELD[key];if(hd&&hd.val!==val){if(pend(key))HELD[key]=hd;else if(apField(docId,field,hd.val,hd.v))rr()} // the database's latest value for this field arrived while our write was in flight: take it now (the last write to reach the database wins on every phone)
 }catch(e){
-  if(e&&e.code=='permission-denied'){setSy('ro');DENIED=true;clean(key);revert(docId,field);rr()} // wrong/missing access code: the change is taken back off this screen and the phone stays view-only until the code is changed
+  DIAG.wr={code:(e&&e.code)||'error',t:Date.now()};if(e&&e.code=='permission-denied'){setSy('ro');DENIED=true;clean(key);revert(docId,field);rr()} // wrong/missing access code: the change is taken back off this screen and the phone stays view-only until the code is changed
   else{setSy(navigator.onLine===false?'off':'connecting');if(Date.now()>=HOLD){RT=Math.min(15000,(RT||750)*2);HOLD=Date.now()+RT;setTimeout(pa,RT+50)}} // any other error is temporary: keep the edit, retry with back-off (one step per round, not per failed write)
 }
 delete BZ[key];pa()}
@@ -1924,10 +1942,11 @@ try{
 // ---- Firebase wiring. FIREBASE_CONFIG is filled in by whoever deploys this (see README).
 const FIREBASE_CONFIG={apiKey:"AIzaSyDARWa3krRGjmKbVB0n6SnSBPCO0aPX85k",authDomain:"ronnie-bass-classic.firebaseapp.com",projectId:"ronnie-bass-classic",storageBucket:"ronnie-bass-classic.firebasestorage.app",messagingSenderId:"258291571639",appId:"1:258291571639:web:41dda39cf278563a2c2632"};
 let EVENT_CODE=null;
+const DIAG={auth:'',init:'',snap:{},err:{},wr:null,t0:Date.now()};
 let REGS='pending'; // pending | ok (registered under the locked-down rules) | legacy (old rules, or this phone's code was not accepted)
 const FDEL=()=>{try{return firebase.firestore.FieldValue.delete()}catch(e){return undefined}};
 const codeBit=()=>{if(REGS=='legacy')return{code:EVENT_CODE};const d=FDEL();return d===undefined?{}:{code:d}}; // locked-down mode also removes any code left in a record by the old app
-async function regDevice(){if(PRACTICE||VIEWER||!DB)return;REGS='pending';try{const u=firebase.auth().currentUser;if(!u)throw{code:'noauth'};await DB.doc('writers/'+u.uid).set({code:EVENT_CODE,ts:Date.now()});REGS='ok'}catch(e){REGS=(e&&(e.code=='unavailable'||e.code=='noauth'))?'pending':'legacy'}
+async function regDevice(){if(PRACTICE||VIEWER||!DB)return;REGS='pending';try{const u=firebase.auth().currentUser;if(!u)throw{code:'noauth'};await DB.doc('writers/'+u.uid).set({code:EVENT_CODE,ts:Date.now()});REGS='ok'}catch(e){DIAG.reg=(e&&(e.code||e.message))||'error';REGS=(e&&(e.code=='unavailable'||e.code=='noauth'))?'pending':'legacy'}
 if(REGS=='pending')setTimeout(()=>{if(REGS=='pending')regDevice()},3000);
 render();pa()}
 function ensureCode(){if(VIEWER){EVENT_CODE='';return ''}try{EVENT_CODE=localStorage.getItem('rbc_code')}catch(e){}
@@ -1945,16 +1964,16 @@ try{
   DB=firebase.firestore();
   ensureCode();
   try{await Promise.race([DB.enablePersistence(),new Promise(r=>setTimeout(r,1500))])}catch(e){} // offline cache; timed out or unsupported is fine either way — never let this block startup
-  await firebase.auth().signInAnonymously();
-  AUTH_OK=true;
-}catch(e){DB=null}
+}catch(e){DIAG.init=(e&&e.message)||'error';DB=null}
 if(!DB){setSy('local');return}
-setSy('connecting');lbInit();regDevice();
+setSy('connecting');
+for(let n=0;!AUTH_OK;n++){try{await Promise.race([firebase.auth().signInAnonymously(),new Promise((_,rj)=>setTimeout(()=>rj({code:'timeout'}),12000))]);AUTH_OK=true;DIAG.auth='ok'}catch(e){DIAG.auth=(e&&(e.code||e.message))||'error';setSy(navigator.onLine===false?'off':'connecting');render();await new Promise(r=>setTimeout(r,Math.min(15000,2000*(n+1))))}} // no signal at launch is not the end: keep trying
+if(SY!='live')setSy('connecting');lbInit();regDevice();
 window.addEventListener('online',()=>{HOLD=0;RT=0;if(SY=='off')setSy('live');if(REGS=='pending')regDevice();else pa()});
 window.addEventListener('offline',()=>setSy('off'));
 let f1=1,f2=1,f3=1;const seen={};
-const rt={},bad=(n,fn)=>e=>{setSy(e&&e.code=='permission-denied'?'ro':(navigator.onLine===false?'off':'connecting'));rt[n]=Math.min(15000,(rt[n]||750)*2);setTimeout(fn,rt[n])}; // a dead listener re-subscribes itself instead of leaving the phone stuck
-const subMatch=()=>DB.collection('match').onSnapshot(sn=>{rt.match=0;let c=false;
+const rt={},bad=(n,fn)=>e=>{DIAG.err[n]={code:(e&&e.code)||'error',t:Date.now()};setSy(e&&e.code=='permission-denied'?'ro':(navigator.onLine===false?'off':'connecting'));rt[n]=Math.min(15000,(rt[n]||750)*2);setTimeout(fn,rt[n])}; // a dead listener re-subscribes itself instead of leaving the phone stuck
+const subMatch=()=>DB.collection('match').onSnapshot(sn=>{rt.match=0;let c=false;DIAG.snap.match=Date.now();delete DIAG.err.match;
 setSy('live'); // any delivery at all — cache or server — is proof this listener is alive and working
 sn.docs.forEach(d=>{seen[d.id]=1;const data=d.data();
 Object.keys(data).forEach(f=>{if(f.endsWith('_v'))return;const v=data[f+'_v'];if(apField(d.id,f,data[f],v))c=true})});
@@ -1963,7 +1982,7 @@ if(!seen[id]&&LP[key]===undefined)LP[key]=null;
 if(data[field]===undefined&&!DRT[key]&&LBASE[key]!==undefined&&LBASE[key]!=='null'&&fval(i,field)===LBASE[key]){clearStale(i,field);c=true} // the database has nothing here and this phone's copy is just old local data: drop it instead of pushing it into the live event
 })})}
 if(c)rr();else if(!sn.metadata.fromCache)pa()},bad('match',subMatch));
-const subMeta=()=>DB.doc('meta/main').onSnapshot(d=>{rt.meta=0;setSy('live');
+const subMeta=()=>DB.doc('meta/main').onSnapshot(d=>{rt.meta=0;DIAG.snap.meta=Date.now();delete DIAG.err.meta;setSy('live');
 const dd=d.exists?d.data():null,b=dd?+(dd.build||0):0;
 if(b>BUILD&&!STALE){STALE=true;render()}else if(STALE&&b<=BUILD){STALE=false;render()}
 KNOWNB=Math.max(KNOWNB,b);
@@ -1993,11 +2012,11 @@ if(INSTALLED)return `<div class="card"><h2>Install app</h2><p class="mu" style="
 if(INSTALLP)return `<div class="card"><h2>Install app</h2><p class="mu">Add Ronnie Bass Classic to your home screen. It opens full-screen, like a normal app.</p><button class="op go" onclick="doInstall()">Install now</button></div>`;
 if(ios)return `<div class="card"><h2>Install app</h2><p class="mu">On an iPhone or iPad: tap the Share icon in Safari, then "Add to Home Screen".</p></div>`;
 return `<div class="card"><h2>Install app</h2><p class="mu">Open your browser's menu and choose "Add to Home Screen" or "Install app". Not every browser offers this.</p></div>`}
-const THKEY='rbc_theme_v1';let THEME='system';
-try{THEME=localStorage.getItem(THKEY)||'system'}catch(e){}
-function applyTheme(){try{document.documentElement.setAttribute('data-theme',THEME=='system'?'':THEME)}catch(e){}}
+const THKEY='rbc_theme_v1';let THEME='light'; // light is the standard look; a person's own choice (Match my phone or Dark) is saved on their phone and kept
+try{THEME=localStorage.getItem(THKEY)||'light'}catch(e){}
+function applyTheme(){try{document.documentElement.setAttribute('data-theme',THEME=='system'?'':THEME);const m=document.querySelector('meta[name=color-scheme]');if(m)m.setAttribute('content',THEME=='system'?'light dark':THEME)}catch(e){}}
 function setTheme(v){THEME=v;try{localStorage.setItem(THKEY,v)}catch(e){}applyTheme();render()}
-function themePage(){return `<div class="card"><h2>Appearance</h2><p class="mu">Dark keeps the navy look. Light uses a tan background.</p>`+[['system','Match my device'],['light','Light'],['dark','Dark']].map(([k,t])=>`<button class="op${THEME==k?' go':''}" onclick="setTheme('${k}')">${THEME==k?'✓ ':''}${t}</button>`).join('')+`</div>`}
+function themePage(){return `<div class="card"><h2>Appearance</h2><p class="mu">Light is the standard look for everyone. Your choice is saved on this phone only, so it stays the way you set it and does not change anyone else's.</p>`+[['light','Light (standard)'],['system','Match my phone'],['dark','Dark']].map(([k,t])=>`<button class="op${THEME==k?' go':''}" onclick="setTheme('${k}')">${THEME==k?'✓ ':''}${t}</button>`).join('')+`</div>`}
 function fix99(){Object.keys(S.sc).forEach(d=>Object.values(S.sc[d]).forEach(a=>a.forEach((v,i)=>{if(v==99)a[i]=2*(COURSE[d]?COURSE[d].par[i]:4)+2})));
 if(!S.rules.includes('double par plus 2'))S.rules+='\n\nMaximum score\nThe most a player can take on any hole is double par plus 2: 8 on a par 3, 10 on a par 4 and 12 on a par 5.'}
 fix99();
