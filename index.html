@@ -537,11 +537,11 @@ const u=S.matches.every(m=>m.pv.every(x=>Math.abs(x*2-Math.round(x*2))<1e-9))?.5
 return{a,t,b,total:tot,bank,left,need,fin:left<=1e-9,exp:exps}}
 function winPct(o){const v=[o.a,o.t,o.b].map(x=>x*100),f=v.map(Math.floor);let r=100-f.reduce((x,y)=>x+y,0);v.map((x,i)=>[x-f[i],i]).sort((x,y)=>y[0]-x[0]).forEach(([_,i])=>{if(r>0){f[i]++;r--}});return f}
 const ODD_VIG=.045; // sportsbook-style margin: both sides of an even match show about -110
-function usOdds(p,vig){const n=betPriceNum(p,vig==null?ODD_VIG:vig);return n===null?'OFF':n===0?'\u2713':n<0?'\u2212'+(-n):'+'+n}
+function usOdds(p,vig,opt){if(opt&&opt.dead)return 'OFF';const n=betPriceNum(p,vig==null?ODD_VIG:vig,!!(opt&&opt.live));return n===null?'OFF':n===0?'\u2713':n<0?'\u2212'+(-n):'+'+n}
 const OP={},OF={};let ODT=0,OFT=0,ODDSOPEN={},WCX=null;
-function oPill(key,p,cls,label,vig){const o=OP[key];OP[key]=p;if(o!==undefined&&Math.abs(o-p)>.002)OF[key]={d:p>o?1:-1,t:Date.now()};const f=OF[key],age=f?Date.now()-f.t:1e9,on=age<9000;
+function oPill(key,p,cls,label,vig,opt){const o=OP[key];OP[key]=p;if(o!==undefined&&Math.abs(o-p)>.002)OF[key]={d:p>o?1:-1,t:Date.now()};const f=OF[key],age=f?Date.now()-f.t:1e9,on=age<9000;
 if(on){OFT=Math.max(OFT,f.t);clearTimeout(ODT);ODT=setTimeout(()=>{ODT=0;if(tab=='s')render()},Math.max(60,OFT+9100-Date.now()))}
-return `<span class="opl ${cls}${p>=.5&&p<.996?' fav':''}${on?(f.d>0?' up':' dn'):''}${age<2000?' an':''}" role="img" aria-label="${esc(label)}, odds ${usOdds(p,vig)}${on?(f.d>0?', getting shorter':', getting longer'):''}">${usOdds(p,vig)}${on?`<i>${f.d>0?'\u25b2':'\u25bc'}</i>`:''}</span>`}
+return `<span class="opl ${cls}${p>=.5&&p<.996?' fav':''}${on?(f.d>0?' up':' dn'):''}${age<2000?' an':''}" role="img" aria-label="${esc(label)}, odds ${usOdds(p,vig,opt)}${on?(f.d>0?', getting shorter':', getting longer'):''}">${usOdds(p,vig,opt)}${on?`<i>${f.d>0?'\u25b2':'\u25bc'}</i>`:''}</span>`}
 function oddsBox(){try{const o=winOdds(),sh=ti=>esc(S.teams[ti].n.replace(/^Team\s+/i,''));
 return `<div class="obx"><div>${oPill('e0',o.a,'r',sh(0)+' to win the Ryder Cup')}</div><div class="obc">WIN ODDS</div><div>${oPill('e1',o.b,'t',sh(1)+' to win the Ryder Cup')}</div></div>`}catch(e){return ''}}
 function winReasons(m,cx){const fx=cx.fx(m),sA=cx.side(m,0),sB=cx.side(m,1),res=r=>r.res[0]+r.res[1]/2,e0=res(winMatch(m,sA,sB,null,false,fx)),sh=ti=>S.teams[ti].n.replace(/^Team\s+/i,''),dn={Friday:'Fridays',Saturday:'Saturdays',Sunday:'Sundays'}[m.d],
@@ -678,7 +678,7 @@ return h+`<button class="op go" style="width:100%;margin:0 0 8px" onclick="downl
 // ======================= Betting lines (odds only) =======================
 // Lines are priced by simulating the rest of the weekend from past results and from everything scored so far, and they move as scores come in.
 // Lines only: odds on the weekend's outcomes. Nothing can be bet and nothing is tracked or paid; a line shows its winner once it is decided.
-const BET_VIG_FUT=.10,BET_DAYSD=1.5,BET_PRIOR=4,BET_N=6000,BET_NN=12000,BET_MIN=.004;
+const BET_VIG_FUT=.10,BET_DAYSD=1.5,BET_PRIOR=4,BET_N=6000,BET_NN=12000,BET_MIN=.004,BET_FLOOR=.0005;
 let BETOPEN={},BETC=null;
 const BETMK=[['cup','Cup winner'],['lowWk','Lowest net round of the weekend'],['lowFriday','Lowest net round, Friday'],['lowSaturday','Lowest net round, Saturday'],['lowSunday','Lowest net round, Sunday'],['bbFriday','Best ball team, Friday'],['bbSaturday','Best ball team, Saturday'],['sun','Sunshine'],['ger','Gerry Bertier'],['alan','Alan Bosley']];
 function betRng(seed){let a=seed>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
@@ -699,14 +699,18 @@ for(let s=0;s<N;s++){if(s%500==499)yield;for(let di=0;di<nd;di++)e[di]=BET_DAYSD
   let cnt=0;for(let i=0;i<P;i++)if(fd[i]==dm)cnt++;const ww=w/cnt;for(let i=0;i<P;i++)if(fd[i]==dm)dayW[di][i]+=ww;if(dm<wm)wm=dm}
  let cnt=0;const hit=new Uint8Array(P);for(let di=0;di<nd;di++)for(let i=0;i<P;i++)if(f[di][i]==wm&&!hit[i]){hit[i]=1;cnt++}for(let i=0;i<P;i++)if(hit[i])wk[i]+=w/cnt}
 const o={wk:{}};DAYS.forEach(d=>o[d]={});names.forEach((n,i)=>{o.wk[n]=wk[i];DAYS.forEach((d,di)=>{o[d][n]=dayW[di][i]})});return o}
+function betElimNet(R){const lb=x=>x.so+x.rp-3*x.r,ub=x=>x.so+x.rp+10*x.r,out={wk:new Set()};let minUb=1e9;DAYS.forEach(d=>R[d].rows.forEach(x=>{minUb=Math.min(minUb,ub(x))}));
+DAYS.forEach(d=>{out[d]=new Set();const mu=Math.min(...R[d].rows.map(ub));R[d].rows.forEach(x=>{if(lb(x)>mu)out[d].add(x.n)})});
+const byN={};DAYS.forEach(d=>R[d].rows.forEach(x=>{(byN[x.n]=byN[x.n]||[]).push(x)}));Object.keys(byN).forEach(n=>{if(byN[n].every(x=>lb(x)>minUb))out.wk.add(n)});return out} // a round is beaten for certain only when its best possible score is worse than another round's worst possible score
 function betSides(day){const out=[];S.matches.forEach((m,mi)=>{if(m.d!=day||m.n<2)return;if(!m.l[0].length||!m.l[1].length)return;[0,1].forEach(ti=>out.push({id:ti+':'+m.l[ti].join('-'),ti,pis:m.l[ti],mi}))});return out}
 const betPhi=x=>{const s=x<0?-1:1,z=Math.abs(x)/Math.SQRT2,u=1/(1+.3275911*z),y=1-(((((1.061405429*u-1.453152027)*u)+1.421413741)*u-.284496736)*u+.254829592)*u*Math.exp(-z*z);return .5*(1+s*y)},betPdf=x=>Math.exp(-x*x/2)/Math.sqrt(2*Math.PI);
 function betMin2(a,b){const th=Math.sqrt(a.v+b.v);if(th<1e-9){return a.m<=b.m?a:b}const al=(b.m-a.m)/th,P=betPhi(al),Q=1-P,f=betPdf(al),m=a.m*P+b.m*Q-th*f,m2=(a.m*a.m+a.v)*P+(b.m*b.m+b.v)*Q-(a.m+b.m)*th*f;return{m,v:Math.max(0,m2-m*m)}}
 // best ball team total: the best net on each hole, summed. Each hole's best of the side's players is a minimum of normals (Clark's formulas); the holes already played are fixed.
 function betSimBB(R,K,day){const sides=betSides(day);if(!sides.length)return null;const rng=betRng(9917+DAYS.indexOf(day)),N=20000,res={},par=R[day].par,rowOf={};R[day].rows.forEach(x=>{rowOf[x.ti+'_'+x.pi]=x});
-const info=sides.map(sd=>{const ps=sd.pis.map(pi=>rowOf[sd.ti+'_'+pi]);let m0=0,v0=0,gs=0,rem=0,bs=0;for(let h=0;h<18;h++){const ds=ps.map(x=>x.nets[h]!=null?{m:x.nets[h],v:0}:{m:par[h]+(K+x.b)/18,v:x.sd*x.sd/18});let c=ds[0];for(let k=1;k<ds.length;k++)c=betMin2(c,ds[k]);m0+=c.m;v0+=c.v;const open=ps.filter(x=>x.nets[h]==null).length;if(open>0){rem++;bs+=open/ps.length}}return{id:sd.id,m0,v0,rem:bs}});
+const info=sides.map(sd=>{const ps=sd.pis.map(pi=>rowOf[sd.ti+'_'+pi]);let m0=0,v0=0,gs=0,rem=0,bs=0,lbs=0,ubs=0;for(let h=0;h<18;h++){const ds=ps.map(x=>x.nets[h]!=null?{m:x.nets[h],v:0}:{m:par[h]+(K+x.b)/18,v:x.sd*x.sd/18});let c=ds[0];for(let k=1;k<ds.length;k++)c=betMin2(c,ds[k]);m0+=c.m;v0+=c.v;const kn=ps.filter(x=>x.nets[h]!=null).map(x=>x.nets[h]),open=ps.length-kn.length;if(open>0){rem++;bs+=open/ps.length}
+  lbs+=open>0?par[h]-3:Math.min(...kn);ubs+=kn.length?Math.min(...kn):par[h]+10}return{id:sd.id,m0,v0,rem:bs,lb:lbs,ub:ubs}});
 for(let s=0;s<N;s++){const e=BET_DAYSD*betNorm(rng);let bm=1e9,bw=[];info.forEach(x=>{const tot=Math.round(x.m0+e*x.rem/18+Math.sqrt(x.v0)*betNorm(rng));if(tot<bm){bm=tot;bw=[x.id]}else if(tot==bm)bw.push(x.id)});bw.forEach(id=>{res[id]=(res[id]||0)+1/bw.length/N})}
-return{sides,p:res}}
+const dead=new Set();info.forEach(a=>{if(info.some(b=>b!==a&&b.ub<a.lb))dead.add(a.id)});return{sides,p:res,dead}}
 function winJoint(m,sA,sB,fx){const R=holes(m),P=winParams(m,sA,sB,fx),ph=P.ph,paF=(1-ph+P.muF)/2,pbF=(1-ph-P.muF)/2,paB=(1-ph+P.muB)/2,pbB=(1-ph-P.muB)/2,seg=(a,b)=>{let d=0,rem=0;for(let i=a;i<b;i++){const x=R[i];if(x=='A')d++;else if(x=='B')d--;else if(x==null)rem++}return{d,rem}};
 const F=seg(0,9),B=seg(9,18),FD=hdist(F.d,F.rem,paF,pbF,ph),BD=hdist(B.d,B.rem,paB,pbB,ph),fix=k=>{const v=m.s[k];return v&&v.w?v.w:null},sg=x=>x>0?'A':x<0?'B':'H',out=[];
 FD.forEach((pf,fd)=>BD.forEach((pb,bd)=>out.push([pf*pb,fix(0)||sg(fd),fix(1)||sg(bd),fix(2)||sg(fd+bd)])));return out}
@@ -722,7 +726,9 @@ for(let s=0;s<N;s++){if(s%250==249)yield;const pp=[S.teams[0].p.map(()=>0),S.tea
  [['sun',lead,1],['ger',tr,1],['alan',tr,0]].forEach(([k,ti,mx])=>{const w=pick(ti,mx);w.forEach(i=>{const n=S.teams[ti].p[i];acc[k][n]=(acc[k][n]||0)+1/w.length})})}
 Object.keys(acc).forEach(k=>Object.keys(acc[k]).forEach(n=>{acc[k][n]/=Math.max(1,used)}));return acc}
 const betVisible=id=>/Saturday$/.test(id)?dayDone('Friday'):/Sunday$/.test(id)?dayDone('Saturday'):true; // Saturday lines appear when Friday is complete, Sunday lines when Saturday is complete
-function betPriceNum(p,vig){if(p<BET_MIN)return null;if(p>=.996)return 0;const q=Math.min(.985,Math.max(.012,p*(1+vig))),rd=x=>{const s=x>=1000?100:x>=300?25:5;return Math.round(x/s)*s};if(q>=.5)return-Math.min(5000,Math.max(100,rd(100*q/(1-q))));return Math.min(20000,Math.max(100,rd(100*(1-q)/q)))}
+function betPriceNum(p,vig,live){const rd=x=>{const s=x>=1000?100:x>=300?25:5;return Math.round(x/s)*s};
+if(live){const q=Math.min(.985,Math.max(.005,p*(1+vig)));return q>=.5?-Math.min(5000,Math.max(100,rd(100*q/(1-q)))):Math.min(20000,Math.max(100,rd(100*(1-q)/q)))} // live line: always a price
+if(p<BET_MIN)return null;if(p>=.996)return 0;const q=Math.min(.985,Math.max(.012,p*(1+vig)));if(q>=.5)return-Math.min(5000,Math.max(100,rd(100*q/(1-q))));return Math.min(20000,Math.max(100,rd(100*(1-q)/q)))}
 function betResolve(id){const done=d=>dayDone(d),all=S.matches.length>0&&S.matches.every(mFin),back=n=>S.teams.flatMap(t=>t.p).find(x=>wan(x)===n)||n;
 const rowsOf=d=>bagStatsDay(d).filter(r=>r.holesN==18);const lowest=ds=>{const rs=[].concat(...ds.map(rowsOf));if(!rs.length)return null;const mn=Math.min(...rs.map(r=>r.totalNet));return[...new Set(rs.filter(r=>r.totalNet==mn).map(r=>r.name))]};
 const aw=()=>awardsAll(),ev=k=>{const a=aw(),o=[];Object.keys(a).forEach(n=>(a[n][k]||[]).forEach(w=>{if(w.y=='2027'&&!w.prov)o.push(back(n))}));return o};
@@ -738,20 +744,22 @@ let BETBUSY=false,BETLAST=0,BETGEN=null;
 const betNow=()=>typeof performance!=='undefined'&&performance.now?performance.now():Date.now();
 function betStep(){if(!BETGEN)return;const t0=betNow();let r;try{while(betNow()-t0<10){r=BETGEN.next();if(r.done)break}}catch(e){BETGEN=null;BETBUSY=false;return}
 if(r&&r.done){BETGEN=null;BETBUSY=false;BETLAST=Date.now();if(tab=='o'&&MS=='bet')render()}else setTimeout(betStep,0)}
-function betReady(){const sig=betSig();if(BETC&&BETC.sig==sig)return BETC.mk;if(!BETBUSY){BETBUSY=true;const wait=BETC?Math.max(40,8000-(Date.now()-BETLAST)):40;setTimeout(()=>{BETGEN=betMarketsG();betStep()},wait)}return BETC?BETC.mk:null} // priced in small slices; while scores are flowing in, repriced at most every 8 seconds
+function betReady(){const sig=betSig();if(BETC&&BETC.sig==sig)return BETC.mk;if(!BETBUSY){BETBUSY=true;const wait=BETC?Math.max(40,3000-(Date.now()-BETLAST)):40;setTimeout(()=>{BETGEN=betMarketsG();betStep()},wait)}return BETC?BETC.mk:null} // priced in small slices; while scores are flowing in, repriced at most every 3 seconds
 
 const betRun=g=>{let r;while(!(r=g.next()).done);return r.value};
 function betMarkets(){const sig=betSig();if(BETC&&BETC.sig==sig)return BETC.mk;return betRun(betMarketsG())}
 function* betMarketsG(){const sig=betSig();
 const M=betModel(),R=betRounds(M),net=yield*betSimNet(R,M.K),ev=yield*betSimEvents(),o=winOdds(),mk=[],team=n=>{for(let ti=0;ti<2;ti++)if(S.teams[ti].p.indexOf(n)>=0)return ti;return 0};
 const norm=obj=>{const s=Object.values(obj).reduce((a,b)=>a+b,0)||1;return Object.keys(obj).map(k=>({id:k,p:obj[k]/s}))};
-const mkSel=(id,title,sub,sels,vig,extra)=>{const rs=betResolve(id),open=rs.st=='open';mk.push(Object.assign({id,title,sub,vig,st:rs.st,win:rs.win||[],sels:sels.map(s=>Object.assign({},s,{price:rs.st=='open'?betPriceNum(s.p,vig):null})).sort((a,b)=>b.p-a.p)},extra||{}))};
-mkSel('cup','Cup winner','Which team wins the Ryder Cup',[{id:'A',label:S.teams[0].n,ti:0,p:o.a},{id:'B',label:S.teams[1].n,ti:1,p:o.b},{id:'T',label:'Tie',ti:-1,p:o.t}],ODD_VIG);
-const pl=(obj)=>norm(obj).map(x=>({id:x.id,label:x.id,ti:team(x.id),p:x.p}));
-mkSel('lowWk','Lowest net round of the weekend','One round, all three days',pl(net.wk),BET_VIG_FUT);
-DAYS.forEach(d=>mkSel('low'+d,'Lowest net round, '+d,'Best single round that day',pl(net[d]),BET_VIG_FUT));
+const mkSel=(id,title,sub,sels,vig,extra)=>{const rs=betResolve(id),open=rs.st=='open',L=sels.map(s=>Object.assign({},s));
+ if(open){L.forEach(s=>{if(!s.dead)s.p=Math.max(s.p,BET_FLOOR)});const tot=L.reduce((a,s)=>a+(s.dead?0:s.p),0)||1;L.forEach(s=>{s.p=s.dead?0:s.p/tot})} // every live selection keeps a price; only a provably eliminated one is OFF
+ mk.push(Object.assign({id,title,sub,vig,st:rs.st,win:rs.win||[],sels:L.map(s=>Object.assign({},s,{price:open?(s.dead?null:betPriceNum(s.p,vig,true)):null})).sort((a,b)=>b.p-a.p)},extra||{}))};
+mkSel('cup','Cup winner','Which team wins the Ryder Cup',[{id:'A',label:S.teams[0].n,ti:0,p:o.a,dead:o.a<1e-9},{id:'B',label:S.teams[1].n,ti:1,p:o.b,dead:o.b<1e-9},{id:'T',label:'Tie',ti:-1,p:o.t,dead:o.t<1e-9}],ODD_VIG);
+const el=betElimNet(R),pl=(obj,dead)=>norm(obj).map(x=>({id:x.id,label:x.id,ti:team(x.id),p:x.p,dead:!!(dead&&dead.has(x.id))}));
+mkSel('lowWk','Lowest net round of the weekend','One round, all three days',pl(net.wk,el.wk),BET_VIG_FUT);
+DAYS.forEach(d=>mkSel('low'+d,'Lowest net round, '+d,'Best single round that day',pl(net[d],el[d]),BET_VIG_FUT));
 ['Friday','Saturday'].forEach(d=>{const sd=betSimBB(R,M.K,d);if(!sd){mk.push({id:'bb'+d,title:'Best ball team, '+d,sub:'Opens when the '+d+' lineups are set',st:'wait',sels:[],vig:BET_VIG_FUT,win:[]});return}
- const lbl=x=>x.pis.map(pi=>S.teams[x.ti].p[pi]).join(' / ');mkSel('bb'+d,'Best ball team, '+d,'Lowest best ball net score',sd.sides.map(x=>({id:x.id,label:lbl(x),ti:x.ti,p:sd.p[x.id]||0})),BET_VIG_FUT)});
+ const lbl=x=>x.pis.map(pi=>S.teams[x.ti].p[pi]).join(' / ');mkSel('bb'+d,'Best ball team, '+d,'Lowest best ball net score',sd.sides.map(x=>({id:x.id,label:lbl(x),ti:x.ti,p:sd.p[x.id]||0,dead:sd.dead.has(x.id)})),BET_VIG_FUT)});
 [['sun','Sunshine','Most points on the winning team'],['ger','Gerry Bertier','Most points on the losing team'],['alan','Alan Bosley','Fewest points on the losing team']].forEach(([k,t,s])=>mkSel(k,t,s,norm(ev[k]).map(x=>({id:x.id,label:x.id,ti:team(x.id),p:x.p})),BET_VIG_FUT));
 BETC={sig,mk,M};return mk}
 
@@ -762,15 +770,15 @@ if(!mkl)return h+`<div class="card"><p class="mu" style="margin:0">Pricing the l
 return h+mkl.map(betCard).join('')+`${mkl.length<betMarkets().length?'<p class="mu" style="margin:0 2px 8px;font-size:13px">Saturday lines open when Friday is complete, and Sunday lines when Saturday is complete.</p>':''}<p class="mu" style="margin:0 2px 12px;font-size:13px">Odds include a built-in margin like a sportsbook. A tie for the win is a dead heat. For fun only: nothing to bet and nothing to win.</p>`}
 function betMore(id){BETOPEN[id]=!BETOPEN[id];render()}
 const betTeamDot=ti=>ti==0?'var(--red)':ti==1?'var(--teal)':'#b9a98a';
-const betStatus=mk=>mk.st=='settled'?['Settled','set']:mk.st=='void'?['Void','set']:mk.st=='wait'?['Not open yet','wait']:mk.sels.some(s=>s.p>=.996)?['Awaiting result','wait']:['Open','open'];
+const betStatus=mk=>mk.st=='settled'?['Settled','set']:mk.st=='void'?['Void','set']:mk.st=='wait'?['Not open yet','wait']:mk.sels.filter(s=>!s.dead).length<=1&&mk.sels.length>1?['Decided, awaiting result','wait']:['Live','open'];
 function betCard(mk){const st=betStatus(mk),all=BETOPEN[mk.id],list=mk.id=='cup'||all?mk.sels:mk.sels.slice(0,4);
 let h=`<div class="bm"><div class="bmh"><b>${esc(mk.title)}</b><span class="bst ${st[1]}">${st[0]}</span></div><small class="mu">${esc(mk.sub)}</small>`;
 if(mk.st=='wait')return h+'</div>';
 if(mk.st=='settled'||mk.st=='void'){h+=mk.st=='void'?'<p class="mu" style="margin:8px 0 0">No winner for this line.</p>':`<p style="margin:8px 0 0"><b>Winner${mk.win.length>1?'s (dead heat)':''}:</b> ${mk.win.map(w=>esc(mk.sels.find(s=>s.id==w)?mk.sels.find(s=>s.id==w).label:w)).join(', ')}</p>`;return h+'</div>'}
-h+=list.map(s=>`<div class="bsel"><i style="background:${betTeamDot(s.ti)}"></i><span>${esc(s.label)}${mk.id!='cup'&&mk.id.slice(0,2)!='bb'?`<small>${esc(S.teams[s.ti]?S.teams[s.ti].n:'')}</small>`:''}</span>${betPill('b:'+mk.id+':'+s.id,s.p,mk.vig,s.ti,mk.title+', '+s.label)}</div>`).join('');
+h+=list.map(s=>`<div class="bsel"><i style="background:${betTeamDot(s.ti)}"></i><span>${esc(s.label)}${mk.id!='cup'&&mk.id.slice(0,2)!='bb'?`<small>${esc(S.teams[s.ti]?S.teams[s.ti].n:'')}</small>`:''}</span>${betPill('b:'+mk.id+':'+s.id,s.p,mk.vig,s.ti,mk.title+', '+s.label,s.dead)}</div>`).join('');
 if(mk.sels.length>list.length||all&&mk.sels.length>4)h+=`<div class="omore"><button onclick="betMore('${mk.id}')">${all?'Show fewer':'Show all '+mk.sels.length} \u203a</button></div>`;
 return h+'</div>'}
-const betPill=(key,p,vig,ti,label)=>oPill(key,p,ti==0?'r':ti==1?'t':'m',label,vig);
+const betPill=(key,p,vig,ti,label,dead)=>oPill(key,p,ti==0?'r':ti==1?'t':'m',label,vig,{live:true,dead:!!dead});
 function stand(c){WCX=null;const [a,b]=S.teams,tot=S.matches.reduce((x,m)=>x+m.pv.reduce((p,q)=>p+q,0),0),d=Math.abs(c.t[0]-c.t[1]);
 const st=!c.n?'Tap a box below to score a point':c.t[0]==c.t[1]?'All square':`${esc(S.teams[c.t[0]>c.t[1]?0:1].n)} leads by ${d}`;
 const pj=projd(),rc=recs(),fin=[],inp=[],up=[];S.matches.forEach((m,mi)=>{(mFin(m)?fin:thru(m)||m.s.some(x=>x)?inp:up).push(mi)});
