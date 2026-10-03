@@ -402,7 +402,7 @@ body.practice header{top:calc(env(safe-area-inset-top,0px) + 26px)}
 // PRACTICE: a sandbox tournament that lives only on this phone. It uses its own saved copy, never connects to the shared database, and cannot change the real event.
 const PRACTICE=(()=>{try{const s=location.search;if(/[?&]practice=(0|off)(&|$)/.test(s)||/[?&]scorer(=|&|$)/.test(s)){localStorage.removeItem('rbc_practice_on');return false}if(/[?&]practice(=1|=on|=true)?(&|$)/.test(s)){localStorage.setItem('rbc_practice_on','1');return true}return localStorage.getItem('rbc_practice_on')=='1'}catch(e){return false}})();
 const KEY=PRACTICE?'rbc_practice_v1':'rbc_v2',$=s=>document.querySelector(s);
-const BUILD=26; // bump together with CACHE in sw.js on every release; a phone running an older build than the event's is held back from saving (see STALE)
+const BUILD=27; // bump together with CACHE in sw.js on every release; a phone running an older build than the event's is held back from saving (see STALE)
 let UPDREADY=false,STALE=false,DENIED=false,RRDEF=false,PENDM={},FRESH=false,KNOWNB=0,LSET=null,SMSG='',PAIRC=null,PAIRDAY=null,PAIRMSG='';
 const HELD={};
 const VIEWER=(()=>{try{if(PRACTICE)return false;const s=location.search,w=/[?&]watch(=|&|$)/.test(s)||location.hash=='#watch';if(/[?&]scorer(=|&|$)/.test(s))localStorage.removeItem('rbc_watch');else if(w)localStorage.setItem('rbc_watch','1');return !/[?&]scorer(=|&|$)/.test(s)&&(w||localStorage.getItem('rbc_watch')=='1')}catch(e){return false}})(),roBase=()=>VIEWER||SY=='ro'||STALE,isRO=()=>roBase()||!!(typeof S==='object'&&S&&S.closed);
@@ -434,7 +434,7 @@ Total: 40 points on the line.
 
 Awards
 Sunshine, Gerry Bertier and Alan Bosley are calculated from player points.`;
-S.rules=S.rules||DR;S.log=S.log||[];S.crs=S.crs||{};S.allow=S.allow||{bb:90,mp:100};S.archive=S.archive||{};
+S.rules=S.rules||DR;S.log=S.log||[];S.crs=S.crs||{};if(!S.crs.Sunday)S.crs.Sunday='Black Bear / Grizzly'; /* Sunday is played at Bear Trap Dunes, Black Bear / Grizzly, unless someone picks another combination */S.allow=S.allow||{bb:90,mp:100};S.archive=S.archive||{};S.crsx=S.crsx||{};
 S.pay=S.pay||{Friday:{f:21,b:21,o:28,bb:70},Saturday:{f:21,b:21,o:28,bb:70},Sunday:{f:0,b:0,o:0,bb:0},grand:340};if(!S.payv2){S.pay={Friday:{f:21,b:21,o:28,bb:70},Saturday:{f:21,b:21,o:28,bb:70},Sunday:{f:0,b:0,o:0,bb:0},grand:340};S.payv2=1}
 if(!S.payv3){['Friday','Saturday'].forEach(d=>{if(S.pay[d]&&S.pay[d].bb)S.pay[d].bb*=2});S.payv3=1} // Best Ball is now a pot shared by the winning side ($70 each for a pair = $140)
 if(S.pay.buyin==null)S.pay.buyin=200;
@@ -447,7 +447,7 @@ if(S.teams)S.teams.forEach(t=>{t.p=t.p.map(n=>typeof n==='string'&&/^\s*Schenk\s
 ['rules','event'].forEach(k=>{if(typeof S[k]==='string')S[k]=scrubNames(S[k])});['awards','log','tees'].forEach(k=>{if(S[k])scrubNames(S[k])});if(S.teams)S.teams.forEach(t=>{scrubNames(t.p)})} // award renames: also fixes rules text saved earlier, on this phone and in the shared database
 function fixRoster(){S.teams.forEach((t,i)=>{if(t.p.length==7&&t.p.every(x=>/^Player \d+$/.test(x))){t.p=[...RS[i].p];t.h=[...RS[i].h]}})}
 fixRoster();fixNames();
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}pa()};
+const save=()=>{try{stampAll()}catch(e){}try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}pa()};
 const TL=['team27-lutz.18e04487.webp','team27-guad.b461fa84.webp'];
 const DAYS=['Friday','Saturday','Sunday'],SEG=['Front 9','Back 9','Overall'],fr=x=>x==.5?'½':x,TT={ctp:'Closest to Pin',ld:'Long Drive',bb:'Birdie Bro',mc:'My Chippy'};
 const C=i=>i?'B':'A',V=i=>i?'teal':'red';
@@ -471,7 +471,7 @@ function a11yPass(){try{const m=document.getElementById('main');if(!m)return;m.q
 let l=e.getAttribute('placeholder')||e.getAttribute('title')||'';if(!l){const row=e.closest('.lr,.hi,.rr');const b=row&&row.querySelector('.ln b,b');if(b)l=b.textContent.trim()}
 if(!l){const n=e.closest('.card'),h=n&&n.querySelector('h2,h3');if(h)l=h.textContent.trim()}if(!l)l='Field';e.setAttribute('aria-label',l)});
 m.querySelectorAll('.ov,.sgw').forEach(e=>{if(!e.hasAttribute('tabindex')){e.tabIndex=0;e.setAttribute('aria-label','Scrollable table')}})}catch(e){}}
-function render0(){save();const c=calc();
+function render0(){if(CRXS!==JSON.stringify(S.crsx||{}))applyCrsx();save();const c=calc();
 $('#lbl').textContent=LB[tab=='o'&&MS?MS:tab];$('#ev').textContent=S.event;
 document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==tab));
 $('#main').innerHTML=noticeHtml()+({a:admin,r:rules,s:()=>stand(c),m:()=>LV?liveView():matches(),h:history,l:leaderboardPage,t:players,o:more})[tab]();if(!(tab=='o'&&MS=='pair')){PAIRC=null;PAIRMSG='';PAIRDAY=null}a11yPass();swipeInit();document.body.classList.toggle('live',!!(LV&&tab=='m'));if(LV&&tab=='m')setTimeout(()=>{ctr();lvScroll()},0)}
@@ -1428,6 +1428,7 @@ ${rbConfigCard()}
 <div class="card"><h2>Handicap allowance</h2><p class="mu">Percent of each Course Handicap used in match play before taking the difference from the lowest player. The USGA recommends 90% for four-ball (best ball) and 100% for singles. Individual net scores (leaderboard, Front 9 and Back 9 payouts, round awards) always use the full Course Handicap.</p><div class="lr"><div class="ln"><b>Best ball</b><small>Friday and Saturday</small></div><select class="in tsel" aria-label="Best ball allowance" onchange="setAllow('bb',this.value)">${[100,95,90,85,80].map(v=>`<option value="${v}"${v==S.allow.bb?' selected':''}>${v}%</option>`).join('')}</select></div><div class="lr"><div class="ln"><b>Singles</b><small>Sunday</small></div><select class="in tsel" aria-label="Singles allowance" onchange="setAllow('mp',this.value)">${[100,95,90,85,80].map(v=>`<option value="${v}"${v==S.allow.mp?' selected':''}>${v}%</option>`).join('')}</select></div></div>
 <div class="card"><h2>Rules text</h2><textarea class="in" oninput="S.rules=this.value;save()">${esc(S.rules)}</textarea></div>
 <div class="card"><h2>Shared settings</h2><p class="mu">The Sunday course, payout amounts and Power Ranking settings are the same on every phone. Change them on any phone with the edit code and everyone follows. The first time, tap the button on the phone that has the right settings.</p><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Shared with every phone</span><b>${typeof LP['settings.settings']==='string'?'Yes':'Not yet'}</b></div><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Sunday course</span><b>${S.crs.Sunday?esc(S.crs.Sunday):'Not chosen'}</b></div><button class="op go" style="margin-top:10px" onclick="shareSettings()">Use this phone's settings for everyone</button>${SMSG?`<p class="mu" style="margin:10px 0 0">${esc(SMSG)}</p>`:''}</div>
+${crsCard()}
 ${closeCard()}
 ${secCard()}
 ${watchCard()}
@@ -1450,7 +1451,7 @@ return h+`</div>`}
 function fmt(d,v){S.matches.forEach(m=>{if(m.d==d)m.f=v});save()}
 function pv(d,k,v){const x=parseFloat(v);S.matches.forEach(m=>{if(m.d==d)m.pv[k]=isNaN(x)?0:x});save()}
 // ---- Backup / restore (Admin). A backup is one small JSON file with everything the event holds: rosters, lineups, scores, tees, courses, payouts, settings and the log. Photos are not included.
-const BK_KEYS=['event','teams','matches','sc','tees','crs','rules','pay','awards','rbpr','allow','log','archive','closed'];
+const BK_KEYS=['event','teams','matches','sc','tees','crs','rules','pay','awards','rbpr','allow','log','archive','closed','crsx','sct'];
 function backupData(){const s={};BK_KEYS.forEach(k=>{if(S[k]!==undefined)s[k]=JSON.parse(JSON.stringify(S[k]))});return{app:'ronnie-bass-classic',version:1,saved:new Date().toISOString(),S:s}}
 function bkName(){const d=new Date(),z=n=>String(n).padStart(2,'0');return 'ronnie-bass-backup-'+d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'-'+z(d.getHours())+z(d.getMinutes())+'.json'}
 async function downloadBackup(){try{const txt=JSON.stringify(backupData()),name=bkName(),f=(window.File&&new File([txt],name,{type:'application/json'}))||null;
@@ -1496,6 +1497,15 @@ function shareWatch(){const u=watchLink();if(navigator.share){navigator.share({t
 function copyWatch(){const u=watchLink();try{navigator.clipboard.writeText(u).then(()=>{WMSG='Link copied';render()},()=>prompt('Copy this link',u))}catch(e){prompt('Copy this link',u)}}
 function scorerSignIn(){try{localStorage.removeItem('rbc_watch')}catch(e){}location.href=location.pathname+'?scorer=1'}
 function watchCard(){return `<div class="card"><h2>Share a watch link</h2><p class="mu">For everyone following along from home or on the course. The link opens the live scoreboard with larger text. It needs no access code and nobody who opens it can change anything. A phone that opens it stays view-only until you choose Scorer sign-in under More.</p><input class="in" readonly value="${esc(watchLink())}" aria-label="Watch link" onfocus="this.select()" style="margin-bottom:10px"><div style="display:flex;gap:8px"><button class="op go" style="flex:1;margin:0" onclick="shareWatch()">Share link</button><button class="op" style="flex:1;margin:0;text-align:center" onclick="copyWatch()">Copy link</button></div>${WMSG?`<p class="mu" style="margin:10px 0 0">${esc(WMSG)}</p>`:''}</div>`}
+let CRS0=null,CRXS='';
+function crs0(){if(!CRS0){CRS0={};const add=(k,c)=>{CRS0[k]={};Object.keys(c.tees).forEach(n=>{CRS0[k][n]={r:c.tees[n].r,s:c.tees[n].s}})};['Friday','Saturday'].forEach(d=>{if(COURSE[d])add(d,COURSE[d])});Object.keys(SUNCOURSES).forEach(k=>add(k,SUNCOURSES[k]))}return CRS0} // the built-in numbers, captured the first time they are needed
+function crsOf(k){return k=='Friday'||k=='Saturday'?COURSE[k]:SUNCOURSES[k]}
+function applyCrsx(){const Z=crs0();CRXS=JSON.stringify(S.crsx||{});Object.keys(Z).forEach(k=>{const c=crsOf(k);if(!c)return;Object.keys(Z[k]).forEach(n=>{c.tees[n].r=Z[k][n].r;c.tees[n].s=Z[k][n].s;const o=((S.crsx||{})[k]||{})[n];if(o){if(o.r>=55&&o.r<=85)c.tees[n].r=o.r;if(o.s>=55&&o.s<=155)c.tees[n].s=o.s}})})}
+function setCrsx(k,tee,f,v){if(isRO())return;v=parseFloat(v);const lo=f=='r'?55:55,hi=f=='r'?85:155;if(!(v>=lo&&v<=hi))return;S.crsx=S.crsx||{};const o=(S.crsx[k]=S.crsx[k]||{})[tee]=S.crsx[k][tee]||{};o[f]=f=='r'?Math.round(v*10)/10:Math.round(v);
+const Z=crs0();if(Z[k]&&Z[k][tee]&&o.r===Z[k][tee].r)delete o.r;if(Z[k]&&Z[k][tee]&&o.s===Z[k][tee].s)delete o.s;if(!Object.keys(o).length)delete S.crsx[k][tee];if(!Object.keys(S.crsx[k]).length)delete S.crsx[k];
+applyCrsx();S.matches.forEach((m,mi)=>{if(k==m.d||(k.indexOf('/')>0&&m.d=='Sunday'))sync(m,mi)});save();render()}
+function crsCard(){const keys=[['Friday','Friday'],['Saturday','Saturday'],[S.crs.Sunday||'','Sunday']].filter(x=>x[0]&&crsOf(x[0]));
+return `<div class="card"><h2>Course data check</h2><p class="mu">These tee ratings and slopes decide every player's course handicap and so the strokes. Compare them with the scorecard at the course and correct any that differ. A change goes to every phone and the strokes update straight away.</p>`+keys.map(([k,d])=>{const c=crsOf(k),tot=n=>c.tees[n].y.reduce((a,b)=>a+b,0);return `<h3 style="margin:12px 0 4px;font-size:16px">${esc(d)}: ${esc(c.n)}</h3><p class="mu" style="margin:0 0 6px;font-size:13px">Par ${c.p}</p>`+Object.keys(c.tees).map(n=>`<div class="hi" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="min-width:0"><b>${esc(n)}</b><br><small class="mu">${tot(n)} yds${c.def==n?' \u00b7 default':''}</small></span><span style="display:flex;gap:6px;align-items:center"><input class="opt" type="number" step="0.1" min="55" max="85" value="${c.tees[n].r}" onchange="setCrsx('${k.replace(/'/g,'')}','${n}','r',this.value)" aria-label="${esc(d+' '+n+' course rating')}" style="width:72px"><input class="opt" type="number" step="1" min="55" max="155" value="${c.tees[n].s}" onchange="setCrsx('${k.replace(/'/g,'')}','${n}','s',this.value)" aria-label="${esc(d+' '+n+' slope')}" style="width:64px"></span></div>`).join('')+(S.crsx&&S.crsx[k]?`<p class="mu" style="margin:6px 0 0;font-size:13px">Changed from the built-in numbers: ${Object.keys(S.crsx[k]).map(esc).join(', ')}.</p>`:'')}).join('')+`<p class="mu" style="margin:12px 0 0;font-size:13px">Rating first, then slope. Heads up: the Black Bear / Grizzly numbers built in here (Championship 70.4 / 126) are lower than the figures some sites publish for that combination (about 72.0 to 72.7 / 130), and I could not confirm the club's official numbers. Check the Sunday scorecard before play.</p></div>`}
 function setCourse(v){if(isRO())return;S.crs.Sunday=v;S.matches.forEach((m,mi)=>{if(m.d=='Sunday')sync(m,mi)});save();render()}
 function shareSettings(){if(isRO())return;LSET=null;dirty('settings.settings');SMSG='This phone\'s settings are now the ones every phone uses.';pa();render()}
 function setAllow(k,v){S.allow[k]=+v;S.matches.forEach((m,mi)=>sync(m,mi));save();render()}
@@ -1811,7 +1821,7 @@ function clean(k){if(DRT[k]){delete DRT[k];dsave()}}
 const pend=k=>TM[k]||BZ[k]||(DRT[k]&&!isRO());
 function lbInit(){S.matches.forEach((m,i)=>fkeys(i).forEach(f=>{LBASE['m'+i+'.'+f]=fval(i,f)}))}
 function clearStale(i,field){const m=S.matches[i];if(!m)return;if(field=='struct'){const d=mk().matches[i];Object.assign(m,{l:d.l,s:d.s,final:null})}else fapply(i,field,'null')}
-function revert(docId,field){const key=docId+'.'+field,sv=LP[key];try{if(field=='settings'){if(typeof sv==='string'){const p=JSON.parse(sv);if(p.crs)S.crs=p.crs;if(p.pay)S.pay=p.pay;if(p.rbpr)S.rbpr=p.rbpr;if('closed' in p)S.closed=p.closed||null;if(p.archive)S.archive=p.archive}}else if(field=='meta'){if(typeof sv==='string'){const p=JSON.parse(sv);S.event=p.event;S.teams=p.teams;S.rules=p.rules;if(p.allow&&typeof p.allow==='object')S.allow={bb:+p.allow.bb||90,mp:+p.allow.mp||100};fixRoster();fixNames()}}
+function revert(docId,field){const key=docId+'.'+field,sv=LP[key];try{if(field=='settings'){if(typeof sv==='string'){const p=JSON.parse(sv);if(p.crs)S.crs=p.crs;if(!S.crs.Sunday)S.crs.Sunday='Black Bear / Grizzly';if(p.pay)S.pay=p.pay;if(p.rbpr)S.rbpr=p.rbpr;if('closed' in p)S.closed=p.closed||null;if(p.archive)S.archive=p.archive;if(p.crsx){S.crsx=p.crsx;applyCrsx()}}}else if(field=='meta'){if(typeof sv==='string'){const p=JSON.parse(sv);S.event=p.event;S.teams=p.teams;S.rules=p.rules;if(p.allow&&typeof p.allow==='object')S.allow={bb:+p.allow.bb||90,mp:+p.allow.mp||100};fixRoster();fixNames()}}
 else{const mi=+docId.slice(1);if(typeof sv==='string'&&sv!=='null')fapply(mi,field,sv);else clearStale(mi,field)}}catch(e){}}
 function flushNow(){try{if(!DB||roBase()||(REGS!='ok'&&REGS!='legacy'))return;pa();Object.keys(TM).forEach(k=>{const j=k.indexOf('.');clearTimeout(TM[k]);delete TM[k];fl(k.slice(0,j),k.slice(j+1))})}catch(e){}}
 
@@ -1830,14 +1840,14 @@ function fkeys(i){const m=S.matches[i];if(!m)return[];const keys=['struct'];
 m.l.forEach((l,ti)=>l.forEach(pi=>{keys.push('sc_'+ti+'_'+pi);keys.push('te_'+ti+'_'+pi)}));return keys}
 function fval(i,field){const m=S.matches[i];if(field=='struct')return JSON.stringify({d:m.d,f:m.f,n:m.n,pv:m.pv,l:m.l,s:m.s,final:m.final||null});
 const[pre,ti,pi]=field.split('_'),k=ti+'_'+pi;
-if(pre=='sc')return JSON.stringify((S.sc[m.d]||{})[k]||null);
+if(pre=='sc'){const a=(S.sc[m.d]||{})[k];return a?JSON.stringify({a,t:sctOf(m.d,k)}):'null'}
 return JSON.stringify((S.tees[m.d]||{})[k]||null)}
 function fapply(i,field,raw){const m=S.matches[i];if(!m)return;const v=JSON.parse(raw);
 if(field=='struct'){if(m.d!==v.d)return;Object.assign(m,{f:v.f,n:v.n,pv:v.pv,l:v.l,s:v.s,final:v.final||null});return}
 const[pre,ti,pi]=field.split('_'),k=ti+'_'+pi;
-if(pre=='sc'){const o=S.sc[m.d]=S.sc[m.d]||{};if(v==null)delete o[k];else o[k]=v}
+if(pre=='sc'){const o=S.sc[m.d]=S.sc[m.d]||{};if(v==null){delete o[k];if(S.sct&&S.sct[m.d])delete S.sct[m.d][k];delete SCL[m.d+'|'+k]}else{const r=scParse(raw);if(r){o[k]=r.a;const tt=sctOf(m.d,k);for(let h=0;h<18;h++)tt[h]=+r.t[h]||0;SCL[m.d+'|'+k]=JSON.stringify(r.a)}}}
 else{const t=S.tees[m.d]=S.tees[m.d]||{};if(v==null)delete t[k];else t[k]=v}}
-const jm=k=>k=='meta'?JSON.stringify({event:S.event,teams:S.teams,rules:S.rules,allow:S.allow}):k=='settings'?JSON.stringify({crs:S.crs,pay:S.pay,rbpr:S.rbpr||{},closed:S.closed||null,archive:S.archive||{}}):null;
+const jm=k=>k=='meta'?JSON.stringify({event:S.event,teams:S.teams,rules:S.rules,allow:S.allow}):k=='settings'?JSON.stringify({crs:S.crs,pay:S.pay,rbpr:S.rbpr||{},closed:S.closed||null,archive:S.archive||{},crsx:S.crsx||{}}):null;
 const curVal=(d,f)=>(f=='meta'||f=='settings')?jm(f):fval(+d.slice(1),f); // meta stays whole-doc (rarely edited by more than one admin at once)
 function applyMatch(i,p){ // legacy whole-doc shape, kept so an old/local-only save still loads
 const m=S.matches[i];if(!m)return;const o=S.sc[m.d]||(S.sc[m.d]={}),t=S.tees[m.d]||(S.tees[m.d]={});
@@ -1878,14 +1888,32 @@ delete BZ[key];pa()}
 // ---- Inbound: apply a remote field, skipping anything stale (older than what we already have)
 // or anything we have a pending local edit for (ours will flush momentarily and this remote read
 // is what we just wrote, or is about to be superseded by our own newer edit).
+let HLC=0,SCL={},SCI=false;
+const stampNow=()=>{HLC=Math.max(Date.now(),HLC+1);return HLC};
+function sctOf(d,k){const o=S.sct=S.sct||{},a=o[d]=o[d]||{};if(!Array.isArray(a[k])||a[k].length!=18)a[k]=Array(18).fill(0);return a[k]}
+function scParse(raw){let v;try{v=JSON.parse(raw)}catch(e){return null}if(Array.isArray(v))return{a:v,t:Array(18).fill(0)};if(v&&Array.isArray(v.a))return{a:v.a,t:Array.isArray(v.t)?v.t:Array(18).fill(0)};return null}
+// every time a player's hole changes on this phone it gets the time it was typed (a hybrid clock that never runs behind anything this phone has seen)
+function stampAll(){Object.keys(S.sc||{}).forEach(d=>{const sc=S.sc[d]||{};Object.keys(sc).forEach(k=>{const arr=sc[k];if(!Array.isArray(arr))return;const key=d+'|'+k,js=JSON.stringify(arr);if(SCL[key]===js)return;if(SCI||SCL[key]!==undefined){const last=SCL[key]?JSON.parse(SCL[key]):[],tt=sctOf(d,k);for(let h=0;h<18;h++){const x=arr[h]==null?null:arr[h],y=last[h]==null?null:last[h];if(x!==y)tt[h]=stampNow()}}SCL[key]=js})});SCI=true}
+function scMerge(d,k,rem){const sc=S.sc[d]=S.sc[d]||{},loc=Array.isArray(sc[k])?sc[k]:Array(18).fill(null),lt=sctOf(d,k),out=Array(18).fill(null);let ahead=false;
+ for(let h=0;h<18;h++){const ra=rem.a[h]==null?null:rem.a[h],rt=+rem.t[h]||0,la=loc[h]==null?null:loc[h],lh=+lt[h]||0;if(rt>HLC)HLC=rt;
+  const takeRemote=rt>lh||(rt==lh&&ra!==la&&ra!==null&&(la===null||ra>la)); // same time and different: the higher score (a typed score beats empty), so every phone picks the same one
+  if(takeRemote){out[h]=ra;lt[h]=rt}else{out[h]=la;if(la!==ra||lh!=rt)ahead=true}}
+ sc[k]=out;SCL[d+'|'+k]=JSON.stringify(out);return ahead}
 function apField(docId,field,val,v){const key=docId+'.'+field;
 if(val===undefined)return false;
 if(LP[key]===val)return false; // nothing new
+if(/^m\d+$/.test(docId)&&/^sc_/.test(field)){ // a player's scores: merge hole by hole, newest typing of each hole wins (works in any arrival order, so two scorers never wipe each other's holes)
+ try{const mi=+docId.slice(1),m=S.matches[mi];if(!m)return false;
+  if(val==='null'){ // the scores were cleared (Reset all scores, a cleared card): follow it unless this phone has unsent scores of its own
+   if(pend(key))return false;fapply(mi,field,val);LP[key]=val;if(v!=null)LPV[key]=v;delete HELD[key];return true}
+  const r=scParse(val);if(!r)return false;const ahead=scMerge(m.d,field.slice(3),r);LP[key]=val;if(v!=null)LPV[key]=v;delete HELD[key];
+  if(WROTE[mi]&&COURSE[m.d])seg(m).forEach((x,q)=>{const c=m.s[q];if(x.w&&(!c||(c.auto&&c.w!=x.w)))m.s[q]={w:x.w,auto:1}});
+  if(ahead){dirty(key);setTimeout(pa,0)}else if(DRT[key]&&!TM[key]&&!BZ[key])clean(key);return true}catch(e){return false}}
 if(pend(key)){if(BZ[key])HELD[key]={val,v};return false} // our own change is waiting or in flight: don't clobber it (if it is in flight, remember what the database says and take it when ours is done)
 try{
   if(field=='settings'||field=='meta'){const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){PENDM[field]={val,v};return false} // someone is typing here: keep the update and apply it when they finish
     delete PENDM[field];}
-  if(field=='settings'){const p=JSON.parse(val),oc=JSON.stringify(S.crs);if(p.crs&&typeof p.crs==='object')S.crs=p.crs;if(p.pay&&typeof p.pay==='object')S.pay=p.pay;if(p.rbpr&&typeof p.rbpr==='object')S.rbpr=p.rbpr;if('closed' in p)S.closed=p.closed||null;if(p.archive&&typeof p.archive==='object')S.archive=p.archive;if(JSON.stringify(S.crs)!==oc)S.matches.forEach((m,mi)=>{if(m.d=='Sunday'&&WROTE[mi])sync(m,mi)})}
+  if(field=='settings'){const p=JSON.parse(val),oc=JSON.stringify(S.crs);if(p.crs&&typeof p.crs==='object')S.crs=p.crs;if(!S.crs.Sunday)S.crs.Sunday='Black Bear / Grizzly';if(p.pay&&typeof p.pay==='object')S.pay=p.pay;if(p.rbpr&&typeof p.rbpr==='object')S.rbpr=p.rbpr;if('closed' in p)S.closed=p.closed||null;if(p.archive&&typeof p.archive==='object')S.archive=p.archive;const ox=JSON.stringify(S.crsx||{});if(p.crsx&&typeof p.crsx==='object'){S.crsx=p.crsx;applyCrsx()}if(JSON.stringify(S.crs)!==oc||JSON.stringify(S.crsx||{})!==ox)S.matches.forEach((m,mi)=>{if((m.d=='Sunday'||JSON.stringify(S.crsx||{})!==ox)&&WROTE[mi])sync(m,mi)})}
   else if(field=='meta'){
     const p=JSON.parse(val);S.event=p.event;S.teams=p.teams;S.rules=p.rules;if(p.allow&&typeof p.allow==='object')S.allow={bb:+p.allow.bb||90,mp:+p.allow.mp||100};fixRoster();fixNames()}
   else{const mi=+docId.slice(1);fapply(mi,field,val);const m=S.matches[mi];
