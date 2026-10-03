@@ -403,10 +403,15 @@ body.practice header{top:calc(env(safe-area-inset-top,0px) + 26px)}
 // PRACTICE: a sandbox tournament that lives only on this phone. It uses its own saved copy, never connects to the shared database, and cannot change the real event.
 const PRACTICE=(()=>{try{const s=location.search;if(/[?&]practice=(0|off)(&|$)/.test(s)||/[?&]scorer(=|&|$)/.test(s)){localStorage.removeItem('rbc_practice_on');return false}if(/[?&]practice(=1|=on|=true)?(&|$)/.test(s)){localStorage.setItem('rbc_practice_on','1');return true}return localStorage.getItem('rbc_practice_on')=='1'}catch(e){return false}})();
 const KEY=PRACTICE?'rbc_practice_v1':'rbc_v2',$=s=>document.querySelector(s);
-const BUILD=28; // bump together with CACHE in sw.js on every release; a phone running an older build than the event's is held back from saving (see STALE)
+const BUILD=29; // bump together with CACHE in sw.js on every release; a phone running an older build than the event's is held back from saving (see STALE)
 let UPDREADY=false,STALE=false,DENIED=false,RRDEF=false,PENDM={},FRESH=false,KNOWNB=0,LSET=null,SMSG='',PAIRC=null,PAIRDAY=null,PAIRMSG='';
 const HELD={};
-const VIEWER=(()=>{try{if(PRACTICE)return false;const s=location.search,w=/[?&]watch(=|&|$)/.test(s)||location.hash=='#watch';if(/[?&]scorer(=|&|$)/.test(s))localStorage.removeItem('rbc_watch');else if(w)localStorage.setItem('rbc_watch','1');return !/[?&]scorer(=|&|$)/.test(s)&&(w||localStorage.getItem('rbc_watch')=='1')}catch(e){return false}})(),roBase=()=>VIEWER||SY=='ro'||STALE,isRO=()=>roBase()||!!(typeof S==='object'&&S&&S.closed);
+const VIEWER=(()=>{try{if(PRACTICE)return false;const s=location.search,w=/[?&]watch(=|&|$)/.test(s)||location.hash=='#watch';if(/[?&]scorer(=|&|$)/.test(s))localStorage.removeItem('rbc_watch');else if(w)localStorage.setItem('rbc_watch','1');return !/[?&]scorer(=|&|$)/.test(s)&&(w||localStorage.getItem('rbc_watch')=='1')}catch(e){return false}})(),roBase=()=>VIEWER||SY=='ro'||STALE||!canEdit(),isRO=()=>roBase()||!!(typeof S==='object'&&S&&S.closed);
+let CODEOK=false;const codeHash=c=>{let h=5381;for(const x of String(c||''))h=((h<<5)+h+x.charCodeAt(0))|0;return String(h)};
+function loadCodeOk(){try{CODEOK=!!EVENT_CODE&&localStorage.getItem('rbc_codeok')===codeHash(EVENT_CODE)}catch(e){CODEOK=false}}
+function setCodeOk(v){CODEOK=!!v;try{if(v&&EVENT_CODE)localStorage.setItem('rbc_codeok',codeHash(EVENT_CODE));else localStorage.removeItem('rbc_codeok')}catch(e){}}
+// Nobody edits anything (scores, lineups, teams, settings, photos) until this phone's access code has been checked against the database. Watch phones never edit. Practice mode is a private sandbox.
+const canEdit=()=>PRACTICE||(!VIEWER&&(CODEOK||FIREBASE_CONFIG.apiKey.indexOf('__')===0));
 const picAlt=s=>/^img\//.test(s)?s.slice(4):'img/'+s;
 document.addEventListener('error',e=>{const el=e.target;if(!el||el.tagName!=='IMG')return;const s=el.getAttribute('src')||'';if(!/\.(webp|jpe?g|png)$/i.test(s)||/^(data:|blob:|https?:)/.test(s))return;
 if(!el.dataset.pt){el.dataset.pt='1';el.setAttribute('src',picAlt(s));return}
@@ -466,6 +471,7 @@ function connVerdict(){if(PRACTICE)return['Practice mode: nothing is sent to the
 if(!DB)return[DIAG.init&&/SDK/.test(DIAG.init)?'The database library did not load, so this phone cannot connect. Check the internet connection, then reload. Scores you enter are saved on this phone.':'This phone is working on its own (not connected to the database). Scores are saved here. Check the internet connection and reload.','bad'];
 if(STALE)return['The event needs a newer version of the app. Tap Update (or reload) to get it. This phone cannot save until you do.','bad'];
 if(VIEWER)return['This phone is a watch-only phone. It shows live scores but never sends anything.','ok'];
+if(NOCODE())return[EVENT_CODE?(REGS=='pending'?'Checking the access code with the database. Until it is accepted this phone can only look.':'The access code on this phone was not accepted, so it can only look. Enter the current code (More, Access code). If every phone is refused, the code may not have been set in Firebase (config, access).'):'No access code has been entered on this phone, so it can only look. Enter the code to score or edit.','bad'];
 if(SY=='ro')return[(DENIED?'The database refused what this phone tried to save. That means the access code on this phone is wrong or out of date. Open More, Admin and enter the current access code. ':'This phone is view only. ')+'Scores are shown but nothing is saved until the code is accepted.','bad'];
 if(SY=='off')return['No internet connection right now. Everything you enter is saved on this phone and is sent as soon as the signal returns.','warn'];
 if(DIAG.auth!=='ok')return['Signing in to the database'+(DIAG.auth?' ('+DIAG.auth+')':'')+'. This phone keeps trying by itself. If it stays here, move to better signal. Scores you enter are saved on this phone meanwhile.','warn'];
@@ -476,10 +482,13 @@ function connCard(force){const v=connVerdict(),c={ok:'var(--teal)',warn:'var(--g
 return `<div class="card" style="border-color:${c};border-width:2px"><h2>Connection</h2><p style="margin:0 0 8px"><b>${esc(SY=='live'?(VIEWER?'Watching live':'Live'):SY=='ro'?'View only':SY=='off'?'Offline':SY=='connecting'?'Connecting':SY=='practice'?'Practice':'Local')}</b></p><p class="mu" style="margin:0 0 10px">${esc(v[0])}</p>
 ${PRACTICE?'':`<div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>App build</span><b>${BUILD}</b></div><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Event requires build</span><b>${KNOWNB||'?'}</b></div><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Sign-in</span><b>${DIAG.auth||(DB?'starting':'no database')}</b></div><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Scores last received</span><b>${connAge(DIAG.snap.match)}</b></div><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Saving</span><b>${REGS=='ok'?'registered':REGS=='legacy'?'old method':'waiting'}</b></div><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Waiting to send</span><b>${Object.keys(DRT).length} change${Object.keys(DRT).length==1?'':'s'}</b></div>${DIAG.wr?`<div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Last save problem</span><b>${esc(DIAG.wr.code)} ${esc(connAge(DIAG.wr.t))}</b></div>`:''}`}
 <div style="display:flex;gap:8px;margin-top:10px"><button class="op go" style="flex:1;margin:0" onclick="HOLD=0;RT=0;regDevice();location.reload()">Reconnect</button>${force?'':`<button class="op" style="flex:1;margin:0;text-align:center" onclick="CONNSHOW=false;render()">Close</button>`}</div></div>`}
-function noticeHtml(){let h='';if(CONNSHOW)h+=connCard();
+const NOCODE=()=>!PRACTICE&&!VIEWER&&!canEdit()&&!STALE;
+function accessCard(){const w=REGS=='pending'&&EVENT_CODE;return `<div class="card" style="border-color:var(--red);padding:12px 14px"><b>${w?'Checking your access code\u2026':'View only'}</b><p class="mu" style="margin:4px 0 10px">${w?'You can look around while the code is checked. Nothing can be changed until it is accepted.':'This phone can look at everything but cannot change anything (scores, teams, lineups, settings, photos) until the event access code is entered and accepted.'}</p>${w?'':'<button class="op go" style="margin:0" onclick="changeCode()">Enter access code</button>'}</div>`}
+function accessPage(){return accessCard()+connCard(true)}
+function noticeHtml(){let h='';if(NOCODE())h+=accessCard();if(CONNSHOW)h+=connCard();
 if(UPDREADY&&!STALE)h+=`<div class="card" style="border-color:var(--gold);padding:12px 14px"><b>A new version is ready</b><p class="mu" style="margin:4px 0 10px">Reload to get the latest fixes. Nothing you entered is lost.</p><button class="op go" style="margin:0" onclick="appUpdate()">Reload now</button></div>`;
 if(STALE)h+=`<div class="card" style="border-color:var(--gold);padding:12px 14px"><b>Update available</b><p class="mu" style="margin:4px 0 10px">The event is running a newer version of the app. Update so every phone works out the same results. This phone can't save anything until you do.</p><button class="op go" onclick="appUpdate()">Update now</button></div>`;
-else if(DENIED&&!VIEWER&&SY=='ro')h+=`<div class="card" style="border-color:var(--red);padding:12px 14px"><b>Not saved</b><p class="mu" style="margin:4px 0 10px">This phone's access code wasn't accepted, so changes can't be saved and are taken back off this screen. Enter the edit code to score.</p><button class="op go" onclick="changeCode()">Enter access code</button></div>`;
+else if(DENIED&&!VIEWER&&SY=='ro'&&canEdit())h+=`<div class="card" style="border-color:var(--red);padding:12px 14px"><b>Not saved</b><p class="mu" style="margin:4px 0 10px">This phone's access code wasn't accepted, so changes can't be saved and are taken back off this screen. Enter the edit code to score.</p><button class="op go" onclick="changeCode()">Enter access code</button></div>`;
 if(S.closed)h+=`<div class="card" style="border-color:var(--gold);padding:12px 14px"><b>Event closed</b><p class="mu" style="margin:4px 0 10px">The ${esc(S.closed.year)} event is closed and archived. Scores and settings are locked.</p><button class="op go" style="margin:0" onclick="tab='o';ARCY=${+S.closed.year};MS='arc';LV=null;render();scrollTo(0,0)">View the archive</button></div>`;
 return h}
 async function appUpdate(){try{if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}if(navigator.serviceWorker){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.update().catch(()=>{})))}}catch(e){}location.reload()}
@@ -669,11 +678,11 @@ const awards={};Object.keys(aw).forEach(n=>Object.keys(aw[n]).forEach(id=>{const
 const pay={};Object.entries(PAYL).forEach(([k,v])=>{const[ti,pi]=k.split('_').map(Number);if(v>0)pay[nm(ti,pi)]=Math.round(v*100)/100});
 return{v:1,year:EVENT_YEAR,ts:Date.now(),event:S.event,teams:S.teams.map(x=>({n:x.n,p:x.p.slice(),h:x.h.slice()})),total:t,win,days,awards,pay,
  ranks:res.players.map(p=>({n:p.nm,ti:p.ti,rank:p.rank,rbpr:+p.rbpr.toFixed(1),noData:!!p.noData})),allFinal:S.matches.every(mFin)}}
-function closeEvent(btn){if(VIEWER||STALE||S.closed||PRACTICE&&false)return;const un=S.matches.map((m,i)=>[m,i]).filter(x=>!mFin(x[0]));
+function closeEvent(btn){if(isRO())return;const un=S.matches.map((m,i)=>[m,i]).filter(x=>!mFin(x[0]));
 if(un.length&&!btn.dataset.f){btn.dataset.f=1;btn.textContent='Close anyway ('+un.length+' not submitted)';return}
 if(!confirm('Close the event and archive '+EVENT_YEAR+'?\n\nScores, lineups, rosters and settings lock on every phone, and a permanent archive is saved. You can reopen the event if this was a mistake.'))return;
 S.archive=S.archive||{};S.archive[EVENT_YEAR]=buildArchive();S.closed={year:EVENT_YEAR,ts:Date.now()};lg('Event closed and archived');save();render()}
-function reopenEvent(){if(VIEWER||STALE||!S.closed)return;if(!confirm('Reopen the event?\n\nScoring and settings unlock on every phone. The saved archive stays until you close the event again.'))return;S.closed=null;lg('Event reopened');save();render()}
+function reopenEvent(){if(VIEWER||STALE||!canEdit()||!S.closed)return;if(!confirm('Reopen the event?\n\nScoring and settings unlock on every phone. The saved archive stays until you close the event again.'))return;S.closed=null;lg('Event reopened');save();render()}
 async function downloadArchive(y){const a=(S.archive||{})[y];if(!a)return;try{const txt=JSON.stringify({app:'ronnie-bass-classic-archive',version:1,archive:a}),name='ronnie-bass-archive-'+y+'.json',f=window.File?new File([txt],name,{type:'application/json'}):null;
 if(f&&navigator.canShare&&navigator.canShare({files:[f]})&&navigator.share){try{await navigator.share({files:[f],title:'Ronnie Bass Classic '+y+' archive'});return}catch(e){if(e&&e.name=='AbortError')return}}
 const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([txt],{type:'application/json'}));l.download=name;document.body.appendChild(l);l.click();setTimeout(()=>{URL.revokeObjectURL(l.href);l.remove()},4000)}catch(e){}}
@@ -800,7 +809,7 @@ function stand(c){WCX=null;const [a,b]=S.teams,tot=S.matches.reduce((x,m)=>x+m.p
 const st=!c.n?'Tap a box below to score a point':c.t[0]==c.t[1]?'All square':`${esc(S.teams[c.t[0]>c.t[1]?0:1].n)} leads by ${d}`;
 const pj=projd(),rc=recs(),fin=[],inp=[],up=[];S.matches.forEach((m,mi)=>{(mFin(m)?fin:thru(m)||m.s.some(x=>x)?inp:up).push(mi)});
 const mc=(mi,f)=>mcard(S.matches[mi],mi,rc,f),emp=t=>`<div class="card"><p class="mu" style="margin:0">${t}</p></div>`;
-let h=`<div class="sec" style="text-align:center;margin:0 0 2px">Overall summary</div><div style="text-align:center;margin-bottom:10px"><button class="lk" onclick="tab='o';MS='a';LV=null;render();scrollTo(0,0)">Enter admin mode</button></div><div class="tn">${[0,1].map(i=>`<div><img class="tl" style="height:48px;margin:0 auto 4px" src="${TL[i]}" alt=""><b>${esc(S.teams[i].n)}</b></div>`).join('')}</div><div class="sb2"><div class="a"><b>${c.t[0]}</b><small>${c.t[0]+pj[0]} PROJECTED</small></div><div class="b"><b>${c.t[1]}</b><small>${c.t[1]+pj[1]} PROJECTED</small></div></div>${oddsBox()}${(recapDays().length||recapFinalOk())?`<div style="text-align:center;margin:-4px 0 12px"><button class="lk" onclick="tab='o';MS='rc';LV=null;render();scrollTo(0,0)">Share recap cards</button></div>`:''}`;
+let h=`<div class="sec" style="text-align:center;margin:0 0 2px">Overall summary</div><div style="text-align:center;margin-bottom:10px"><button class="lk" onclick="tab='o';MS='a';LV=null;render();scrollTo(0,0)">${canEdit()?'Enter admin mode':'Enter access code'}</button></div><div class="tn">${[0,1].map(i=>`<div><img class="tl" style="height:48px;margin:0 auto 4px" src="${TL[i]}" alt=""><b>${esc(S.teams[i].n)}</b></div>`).join('')}</div><div class="sb2"><div class="a"><b>${c.t[0]}</b><small>${c.t[0]+pj[0]} PROJECTED</small></div><div class="b"><b>${c.t[1]}</b><small>${c.t[1]+pj[1]} PROJECTED</small></div></div>${oddsBox()}${(recapDays().length||recapFinalOk())?`<div style="text-align:center;margin:-4px 0 12px"><button class="lk" onclick="tab='o';MS='rc';LV=null;render();scrollTo(0,0)">Share recap cards</button></div>`:''}`;
 const cd=curDay(),inpToday=inp.filter(mi=>S.matches[mi].d==cd);
 h+=`<div class="sec">${cd} · Points in play</div>`+(inpToday.length?inpToday.map(mi=>mc(mi,0)).join(''):emp(`No matches in play for ${cd} yet`));
 h+=`<p class="mu" style="margin:-4px 2px 14px">See every match, past and upcoming, on the Matches tab.</p>`;
@@ -1225,27 +1234,27 @@ S.teams.forEach((t,ti)=>{h+=`<button class="op" onclick="setS(${mi},${si},'${C(t
 h+=`<button class="op" onclick="setS(${mi},${si},'H')">Halved</button><button class="op" onclick="setS(${mi},${si})">Clear result</button>`;sheet(h)}
 function setS(mi,si,w){const m=S.matches[mi],ti=w=='A'?0:1;m.s[si]=w?{w}:null;
 lg(`${lab(mi)} ${SEG[si]}: ${!w?'cleared':w=='H'?'halved':S.teams[ti].n+' won'}`);shut();render()}
-function lineup(mi){if(VIEWER||STALE||S.closed)return;const m=S.matches[mi];let h=`<h3>${lab(mi)} players</h3><p class="mu">Pick ${m.n} per team from the rosters. Players already in another ${m.d} match are locked.</p>`;
+function lineup(mi){if(isRO())return;const m=S.matches[mi];let h=`<h3>${lab(mi)} players</h3><p class="mu">Pick ${m.n} per team from the rosters. Players already in another ${m.d} match are locked.</p>`;
 const cs0=COURSE[m.d];
 S.teams.forEach((t,ti)=>{h+=`<div class="sec" style="margin:12px 0 8px">${esc(t.n)} (${m.l[ti].length}/${m.n})</div>`+t.p.map((p,pi)=>{const on=m.l[ti].includes(pi),ot=S.matches.findIndex((q,qi)=>qi!=mi&&q.d==m.d&&q.l[ti].includes(pi));
 const ch0=cs0&&pidx(t.h[pi])!=null?chd({d:m.d,l:m.l},ti,pi):null;
 const info=[t.h[pi]?'Index '+t.h[pi]:'',ch0!=null?'CH '+ch0+' ('+teeOfD(m.d,ti,pi)+')':'',t.c[pi]].filter(Boolean).join(' · ');
 return `<button class="op" ${ot>=0?'disabled style="opacity:.45"':on?'style="border-color:var(--'+V(ti)+');border-width:3px"':''} onclick="tg(${mi},${ti},${pi})">${on?'✓ ':''}${esc(p)}${info?'<br><small>'+esc(info)+'</small>':''}${ot>=0?'<br><small>In '+lab(ot)+'</small>':''}</button>`}).join('')});
 sheet(h+`<button class="op go" onclick="shut();render()">Done</button>`)}
-function tg(mi,ti,pi){if(VIEWER||STALE||S.closed)return;const m=S.matches[mi],l=m.l[ti],k=l.indexOf(pi);if(k>=0){l.splice(k,1)}else{const used=S.matches.some((q,qi)=>qi!=mi&&q.d==m.d&&q.l[ti].includes(pi));if(!used&&l.length<m.n)l.push(pi)}sync(m,mi);save();lineup(mi)}
+function tg(mi,ti,pi){if(isRO())return;const m=S.matches[mi],l=m.l[ti],k=l.indexOf(pi);if(k>=0){l.splice(k,1)}else{const used=S.matches.some((q,qi)=>qi!=mi&&q.d==m.d&&q.l[ti].includes(pi));if(!used&&l.length<m.n)l.push(pi)}sync(m,mi);save();lineup(mi)}
 let AK;
 function award(k){AK=k;const v=S.awards[k]||{};let h=`<h3>${TT[k]}</h3><p class="mu">Who gets it?</p>`;
 if(k=='ctp'||k=='ld')h+=`<input class="in" id="ad" placeholder="Details, e.g. Match 2, Hole 14" value="${esc(v.d)}" style="margin-bottom:12px">`;
 S.teams.forEach((t,ti)=>t.p.forEach((p,pi)=>h+=`<button class="op" onclick="setA(${ti},${pi})"><span class="d" style="background:var(--${V(ti)})"></span>${esc(p)}</button>`));
 h+=`<button class="op" onclick="setA()">Clear</button>`;sheet(h)}
-function setA(t,p){const d=$('#ad');if(t==null){delete S.awards[AK];lg(TT[AK]+' cleared')}else{S.awards[AK]={t,p,d:d?d.value.trim():''};lg(TT[AK]+': '+S.teams[t].p[p])}shut();render()}
+function setA(t,p){if(isRO())return;const d=$('#ad');if(t==null){delete S.awards[AK];lg(TT[AK]+' cleared')}else{S.awards[AK]={t,p,d:d?d.value.trim():''};lg(TT[AK]+': '+S.teams[t].p[p])}shut();render()}
 let PAYL={};
 function usd(x){return '$'+(Math.round(x*100)%100?x.toFixed(2):Math.round(x).toLocaleString())}
 function pay27(ti,pi){payoutsPage();return PAYL[ti+'_'+pi]||0}
 function openP(ti,pi){tab='t';LV=null;MS=null;PF={ti,pi};render();scrollTo(0,0)}
-function players(){if(PF&&S.teams[PF.ti]&&S.teams[PF.ti].p[PF.pi]!==undefined)return profilePage(PF.ti,PF.pi);PF=null;return TE&&!S.closed?rosterEdit():rosterView()}
+function players(){if(PF&&S.teams[PF.ti]&&S.teams[PF.ti].p[PF.pi]!==undefined)return profilePage(PF.ti,PF.pi);PF=null;return TE&&!isRO()?rosterEdit():rosterView()}
 function rosterView(){const PR=rbAll().players,rk={};PR.forEach((p)=>{rk[p.ti+'_'+p.pi]=p.rank});
-let h=`<button class="add" style="margin-bottom:12px" onclick="TE=true;render()">Edit roster</button>`;
+let h=isRO()?'':`<button class="add" style="margin-bottom:12px" onclick="TE=true;render()">Edit roster</button>`;
 S.teams.forEach((t,ti)=>{h+=`<div class="pc" style="border-top:6px solid var(--${V(ti)})"><div style="display:flex;justify-content:center;margin-bottom:10px"><img class="tl" style="margin:0" src="${TL[ti]}" alt=""></div><div class="sec" style="text-align:center;margin:0 0 10px">${esc(t.n)}</div>`+t.p.map((p,pi)=>`<button class="rowp" onclick="openP(${ti},${pi})">${avatar(ti,pi,p,48)}<span class="rn"><b>${esc(p)}</b><small>Index ${t.h[pi]?esc(t.h[pi]):'\u2013'} \u00b7 Power rank #${rk[ti+'_'+pi]}</small></span><i>\u203a</i></button>`).join('')+`</div>`});
 return h}
 const RVMIN=3;
@@ -1390,14 +1399,14 @@ if(!sh.length)h+=`<p class="mu" style="margin:0">No rounds on record yet.</p>`;e
 h+=awardsCard(n,ti);
 const w27=pay27(ti,pi),hist=Object.keys(PAYH).filter(y=>PAYH[y][n]!=null),tot=w27+hist.reduce((s,y)=>s+PAYH[y][n],0);
 h+=`<div class="card"><h2>Payouts</h2><div style="font:800 34px 'Barlow Condensed',sans-serif">${usd(tot)}</div><p class="mu" style="margin:0 0 6px">Total winnings</p>`+`<div class="mr"><div><b>2027</b><small>Estimate from scores so far</small></div><span class="res">${usd(w27)}</span></div>`+hist.slice().reverse().map(y=>`<div class="mr"><div><b>${y}</b>${(PAYD[y]||[]).filter(r=>r[3]==n).map(r=>'<small>'+esc(r[1])+' \u00b7 '+esc(r[0])+' \u00b7 '+usd(r[2])+'</small>').join('')}</div><span class="res">${usd(PAYH[y][n])}</span></div>`).join('')+(hist.length?'':`<p class="mu" style="margin:8px 0 0">2024 to 2026 payouts have not been added yet.</p>`)+`</div>`;
-h+=`<button class="add" onclick="TE=true;PF=null;render();scrollTo(0,0)">Edit roster</button>`;
+h+=isRO()?'':`<button class="add" onclick="TE=true;PF=null;render();scrollTo(0,0)">Edit roster</button>`;
 return h}
 function rosterEdit(){let h='<button class="add" style="margin-bottom:12px" onclick="TE=false;render()">Done editing</button>';
 S.teams.forEach((t,ti)=>{h+=`<div class="pc" style="border-top:6px solid var(--${V(ti)})"><div style="display:flex;justify-content:center;margin-bottom:10px"><img class="tl" style="margin:0" src="${TL[ti]}" alt=""></div><input class="in" style="text-align:center;font-weight:800" aria-label="Team name" value="${esc(t.n)}" oninput="S.teams[${ti}].n=this.value;save()"><div class="sec" style="margin:16px 2px 10px">Roster (${t.p.length})</div>`+
 t.p.map((p,pi)=>`<div class="pl"><div class="pr"><label class="pfw">${avatar(ti,pi,p,40)}<input type="file" accept="image/*" style="position:absolute;opacity:0;width:40px;height:40px;left:0;top:0" onchange="pickPPic(${ti},${pi},this)">${PPICS[ti+'_'+pi]?`<button class="xp" aria-label="Remove photo" onclick="clearPhoto(${ti},${pi},event)">✕</button>`:''}</label><input class="in hc" value="${esc(t.h[pi])}" placeholder="HCP" inputmode="decimal" aria-label="Handicap" oninput="S.teams[${ti}].h[${pi}]=this.value;save()"><input class="in nmi" value="${esc(p)}" placeholder="Player name" aria-label="Player name" oninput="S.teams[${ti}].p[${pi}]=this.value;save()"><button class="x" aria-label="Remove player" onclick="rm(${ti},${pi})">✕</button></div></div>`).join('')+`<button class="add" onclick="add(${ti})">+ Add player</button></div>`});
 return h}
-function add(ti){S.teams[ti].h.push('');S.teams[ti].c.push('');S.teams[ti].p.push('Player '+(S.teams[0].p.length+S.teams[1].p.length+1));render()}
-function rm(ti,pi){S.teams[ti].p.splice(pi,1);S.teams[ti].h.splice(pi,1);S.teams[ti].c.splice(pi,1);
+function add(ti){if(isRO())return;S.teams[ti].h.push('');S.teams[ti].c.push('');S.teams[ti].p.push('Player '+(S.teams[0].p.length+S.teams[1].p.length+1));render()}
+function rm(ti,pi){if(isRO())return;S.teams[ti].p.splice(pi,1);S.teams[ti].h.splice(pi,1);S.teams[ti].c.splice(pi,1);
 S.matches.forEach(m=>{const l=m.l[ti],k=l.indexOf(pi);if(k>=0)l.splice(k,1);m.l[ti]=l.map(x=>x>pi?x-1:x)});reindexPPics(ti,pi);
 Object.keys(S.awards).forEach(k=>{const a=S.awards[k];if(a.t==ti){if(a.p==pi)delete S.awards[k];else if(a.p>pi)a.p--}});
 Object.values(S.sc).forEach(o=>{const n={};Object.keys(o).forEach(k=>{const[t,p]=k.split('_').map(Number);if(t!=ti||p<pi)n[k]=o[k];else if(p>pi)n[t+'_'+(p-1)]=o[k]});Object.keys(o).forEach(k=>delete o[k]);Object.assign(o,n)});
@@ -1459,7 +1468,7 @@ return [['Screen',screen.width+' x '+screen.height],['Window (innerHeight)',inne
 function teeOfD(d,ti,pi){const c=COURSE[d],t=(S.tees[d]||{})[ti+'_'+pi];return c?(c.tees[t]?t:c.def):null}
 function chDay(d,ti,pi){const c=COURSE[d],x=pidx(S.teams[ti].h[pi]);if(!c||x==null)return null;const T=c.tees[teeOfD(d,ti,pi)];return Math.round(x*T.s/113+T.r-c.p)}
 function tcTxt(d,ti,pi){const x=chDay(d,ti,pi),h=S.teams[ti].h[pi];return h?'Index '+h+' \u00b7 Course Handicap '+x:'No handicap yet. Add it on the Teams tab.'}
-function setTeeA(d,k,v){if(VIEWER||STALE||S.closed)return;(S.tees[d]=S.tees[d]||{})[k]=v;const[ti,pi]=k.split('_').map(Number),e=document.getElementById('tc_'+d+'_'+k);if(e)e.textContent=tcTxt(d,ti,pi);S.matches.forEach((m,mi)=>{if(m.d==d&&m.l[ti]&&m.l[ti].includes(pi))sync(m,mi)});save()}
+function setTeeA(d,k,v){if(isRO())return;(S.tees[d]=S.tees[d]||{})[k]=v;const[ti,pi]=k.split('_').map(Number),e=document.getElementById('tc_'+d+'_'+k);if(e)e.textContent=tcTxt(d,ti,pi);S.matches.forEach((m,mi)=>{if(m.d==d&&m.l[ti]&&m.l[ti].includes(pi))sync(m,mi)});save()}
 function teesAdmin(){let h=`<div class="card"><h2>Tees and course handicaps</h2><p class="mu">Give each player the tee they are playing each day. Course Handicap = Handicap Index \u00d7 (Slope \u00f7 113) + (Rating \u2212 Par), using that tee at that day's course. Scoring uses these automatically.</p>`;
 DAYS.forEach(d=>{const c=COURSE[d];h+=`<div class="sec" style="margin:14px 2px 8px">${d}${c?' \u00b7 '+esc(c.n):''}</div>`;
 if(!c){h+=`<p class="mu">Pick the course for ${d} in the Matches tab first.</p>`;return}
@@ -1476,9 +1485,9 @@ async function downloadBackup(){try{const txt=JSON.stringify(backupData()),name=
 if(f&&navigator.canShare&&navigator.canShare({files:[f]})&&navigator.share){try{await navigator.share({files:[f],title:'Ronnie Bass Classic backup'});BKMSG='Backup ready. Save it to Files or send it to yourself.';render();return}catch(e){if(e&&e.name=='AbortError')return}}
 const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000);BKMSG='Backup downloaded: '+name;render()}catch(e){BKMSG='Could not create the backup on this phone.';render()}}
 function bkCheck(x){return !!(x&&x.app=='ronnie-bass-classic'&&x.S&&Array.isArray(x.S.matches)&&x.S.matches.length==S.matches.length&&Array.isArray(x.S.teams)&&x.S.teams.length==2&&x.S.sc&&typeof x.S.sc=='object')}
-function bkApply(x){const cur=backupData();try{localStorage.setItem('rbc_prerestore',JSON.stringify(cur))}catch(e){}
+function bkApply(x){if(isRO())return;const cur=backupData();try{localStorage.setItem('rbc_prerestore',JSON.stringify(cur))}catch(e){}
 BK_KEYS.forEach(k=>{if(x.S[k]!==undefined)S[k]=JSON.parse(JSON.stringify(x.S[k]))});S.allow=S.allow||{bb:90,mp:100};LV=null;fixRoster();fixNames();S.matches.forEach((m,mi)=>sync(m,mi));save();render()}
-function restoreBackup(input){const f=input&&input.files&&input.files[0];if(input)input.value='';if(!f)return;if(S.closed){BKMSG='Reopen the event before restoring a backup.';render();return}const r=new FileReader();
+function restoreBackup(input){if(isRO()){if(input)input.value='';return}const f=input&&input.files&&input.files[0];if(input)input.value='';if(!f)return;if(S.closed){BKMSG='Reopen the event before restoring a backup.';render();return}const r=new FileReader();
 r.onload=()=>{try{const x=JSON.parse(r.result);if(!bkCheck(x)){BKMSG='That file is not a Ronnie Bass Classic backup for this event.';render();return}
 const when=x.saved?new Date(x.saved).toLocaleString():'unknown date',n=Object.values(x.S.sc||{}).reduce((a,d)=>a+Object.keys(d||{}).length,0);
 if(!confirm('Restore the backup saved '+when+'?\n\nThis replaces the lineups, scores, rosters and settings on this phone and, if this phone has the edit code, for everyone watching. A copy of the current data is kept on this phone so you can undo.'))return;
@@ -1526,10 +1535,10 @@ function crsCard(){const keys=[['Friday','Friday'],['Saturday','Saturday'],[S.cr
 return `<div class="card"><h2>Course data check</h2><p class="mu">These tee ratings and slopes decide every player's course handicap and so the strokes. Compare them with the scorecard at the course and correct any that differ. A change goes to every phone and the strokes update straight away.</p>`+keys.map(([k,d])=>{const c=crsOf(k),tot=n=>c.tees[n].y.reduce((a,b)=>a+b,0);return `<h3 style="margin:12px 0 4px;font-size:16px">${esc(d)}: ${esc(c.n)}</h3><p class="mu" style="margin:0 0 6px;font-size:13px">Par ${c.p}</p>`+Object.keys(c.tees).map(n=>`<div class="hi" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="min-width:0"><b>${esc(n)}</b><br><small class="mu">${tot(n)} yds${c.def==n?' \u00b7 default':''}</small></span><span style="display:flex;gap:6px;align-items:center"><input class="opt" type="number" step="0.1" min="55" max="85" value="${c.tees[n].r}" onchange="setCrsx('${k.replace(/'/g,'')}','${n}','r',this.value)" aria-label="${esc(d+' '+n+' course rating')}" style="width:72px"><input class="opt" type="number" step="1" min="55" max="155" value="${c.tees[n].s}" onchange="setCrsx('${k.replace(/'/g,'')}','${n}','s',this.value)" aria-label="${esc(d+' '+n+' slope')}" style="width:64px"></span></div>`).join('')+(S.crsx&&S.crsx[k]?`<p class="mu" style="margin:6px 0 0;font-size:13px">Changed from the built-in numbers: ${Object.keys(S.crsx[k]).map(esc).join(', ')}.</p>`:'')}).join('')+`<p class="mu" style="margin:12px 0 0;font-size:13px">Rating first, then slope. Heads up: the Black Bear / Grizzly numbers built in here (Championship 70.4 / 126) are lower than the figures some sites publish for that combination (about 72.0 to 72.7 / 130), and I could not confirm the club's official numbers. Check the Sunday scorecard before play.</p></div>`}
 function setCourse(v){if(isRO())return;S.crs.Sunday=v;S.matches.forEach((m,mi)=>{if(m.d=='Sunday')sync(m,mi)});save();render()}
 function shareSettings(){if(isRO())return;LSET=null;dirty('settings.settings');SMSG='This phone\'s settings are now the ones every phone uses.';pa();render()}
-function setAllow(k,v){S.allow[k]=+v;S.matches.forEach((m,mi)=>sync(m,mi));save();render()}
-function setPay(d,k,v){const x=parseFloat(v)||0;if(k)S.pay[d][k]=x;else S.pay[d]=x;save()}
+function setAllow(k,v){if(isRO())return;S.allow[k]=+v;S.matches.forEach((m,mi)=>sync(m,mi));save();render()}
+function setPay(d,k,v){if(isRO())return;const x=parseFloat(v)||0;if(k)S.pay[d][k]=x;else S.pay[d]=x;save()}
 function pts(mi,d){const s=S.matches[mi].s;if(d>0&&s.length<9)s.push(null);if(d<0&&s.length>1)s.pop();render()}
-function clr(b){if(!b.dataset.c){b.dataset.c=1;b.textContent='Tap again to clear history';return}S.log=[];render()}
+function clr(b){if(isRO())return;if(!b.dataset.c){b.dataset.c=1;b.textContent='Tap again to clear history';return}S.log=[];render()}
 const gs=(n,c,h)=>{if(!c)return 0;const an=Math.abs(n),r=an%18,q=Math.floor(an/18);return n<0?-(q+(c.hcp[h]>18-r?1:0)):q+(c.hcp[h]<=r?1:0)}; // strokes on a hole: playing strokes go on the hardest holes first; a plus handicap gives strokes back on the easiest holes first
 function pidx(v){const s=String(v==null?'':v).trim(),p=s.match(/^(?:plus|\+)\s*(\d+(?:\.\d+)?)/i);if(p)return -parseFloat(p[1]);const n=parseFloat(s);return isNaN(n)?null:n}
 function tee(m,ti,pi){const c=COURSE[m.d],t=(S.tees[m.d]||{})[ti+'_'+pi];return c?(c.tees[t]?t:c.def):null}
@@ -1539,7 +1548,7 @@ function stk(m){const ch={},r={},al=alw(m);let lo=null;[0,1].forEach(ti=>m.l[ti]
 function best(m,ti,h){const o=S.sc[m.d]||{},st=stk(m),c=COURSE[m.d],v=m.l[ti].map(pi=>{const k=ti+'_'+pi,g=(o[k]||[])[h];return g==null?null:g==99?99:g-gs(st[k]||0,c,h)});return v.length&&v.every(x=>x!=null)?Math.min(...v):null}
 function teeCard(m,st){const c=COURSE[m.d];return `<div class="card"><h2>Tees and strokes</h2><p class="mu">Course Handicap = Handicap Index × (Slope ÷ 113) + (Rating − Par), rounded. ${alw(m)<100?`In this format each Course Handicap is first cut to ${alw(m)}% (rounded). `:''}The lowest handicap in the match plays scratch; everyone else plays the difference, applied on the hardest holes first.</p>`+[0,1].map(ti=>m.l[ti].map(pi=>{const k=ti+'_'+pi,t=S.teams[ti],x=chd(m,ti,pi),ok=pidx(t.h[pi])!=null;
 return `<div class="lr"><div class="ln"><b>${esc(t.p[pi])}</b><small>${ok?'Index '+esc(t.h[pi])+' · Course Handicap '+x+' · playing strokes '+st[k]:'No handicap yet. Add it on the Teams tab.'}</small></div><select class="in tsel" aria-label="Tee for ${esc(t.p[pi])}" onchange="setTee('${m.d}','${k}',this.value)">${Object.keys(c.tees).map(u=>`<option${u==tee(m,ti,pi)?' selected':''}>${u}</option>`).join('')}</select></div>`}).join('')).join('')+`</div>`}
-function setTee(d,k,v){if(VIEWER||STALE||S.closed)return;(S.tees[d]=S.tees[d]||{})[k]=v;sync(S.matches[LV.mi],LV.mi);render()}
+function setTee(d,k,v){if(isRO())return;(S.tees[d]=S.tees[d]||{})[k]=v;sync(S.matches[LV.mi],LV.mi);render()}
 function sm(m,ti,pi,h,v,st){const c=COURSE[m.d],k=ti+'_'+pi,n=st[k]||0,d=gs(n,c,h),g=(v==null||v==99)?'':'Net '+(v-d)+' · ';
 return c?g+(n?n+(n>1?' strokes':' stroke')+(d?' · '+'●'.repeat(d)+' this hole':''):'scratch'):(S.teams[ti].h[pi]?'HCP '+esc(S.teams[ti].h[pi]):'&nbsp;')}
 function holes(m){return Array.from({length:18},(_,h)=>{const a=best(m,0,h),b=best(m,1,h);return a==null||b==null?null:a<b?'A':a>b?'B':'H'})}
@@ -1553,15 +1562,15 @@ function live(mi){const m=S.matches[mi],o=order(m),d=S.sc[m.d]||{};let h=17,k=o[
 for(let i=0;i<18&&!f;i++)for(const q of o)if(((d[q]||[])[i])==null){h=i;k=q;f=1;break}
 LV={mi,h,k,tab:'hole',grp:isSplit(m)&&LVG[mi]!=null?LVG[mi]:null};if(LV.grp!=null)lvGrp(LV.grp,true);LVP=null;LVD=[0,0];clearTimeout(LVT);tab='m';render();scrollTo(0,0)}
 function hole(h){LV.h=Math.max(0,Math.min(17,h));render()}
-function sc(ti,pi,d){const m=S.matches[LV.mi],o=S.sc[m.d]=S.sc[m.d]||{},k=ti+'_'+pi,a=o[k]=o[k]||Array(18).fill(null);let v=a[LV.h];
+function sc(ti,pi,d){if(isRO())return;const m=S.matches[LV.mi],o=S.sc[m.d]=S.sc[m.d]||{},k=ti+'_'+pi,a=o[k]=o[k]||Array(18).fill(null);let v=a[LV.h];
 if(v==null||v==99){const c=COURSE[m.d],p=c?c.par[LV.h]:4;v=d>0?p+3:p-2}else v=Math.max(1,Math.min(2*(COURSE[m.d]?COURSE[m.d].par[LV.h]:4)+2,v+d));
 a[LV.h]=v;sync(m,LV.mi);render()}
 function finalCard(m,mi){const done=m.s.every(x=>x);
 if(m.final)return `<div class="card" style="border-color:var(--teal)"><h2>\u2713 Match finalized</h2><p class="mu" style="margin:0 0 10px">These scores count toward standings, points and Power Rankings. Made a mistake? You can still fix it.</p><button class="op go" style="width:100%" onclick="unfinalize(${mi})">Edit this match anyway</button></div>`;
 if(!done)return '';
 return `<div class="card" style="border-color:var(--teal)"><h2>Ready to submit</h2><p class="mu" style="margin:0 0 10px">All 18 holes are in for every player. Submitting locks this match in as final \u2014 it'll count toward standings, points and Power Rankings.</p><button class="op go" style="width:100%" onclick="finalizeMatch(${mi})">Submit final score</button></div>`}
-function finalizeMatch(mi){if(VIEWER||STALE||S.closed)return;const m=S.matches[mi];if(!m.s.every(x=>x))return;m.final=Date.now();sync(m,mi);save();render()}
-function unfinalize(mi){if(VIEWER||STALE||S.closed)return;const m=S.matches[mi];delete m.final;sync(m,mi);save();render()}
+function finalizeMatch(mi){if(isRO())return;const m=S.matches[mi];if(!m.s.every(x=>x))return;m.final=Date.now();sync(m,mi);save();render()}
+function unfinalize(mi){if(isRO())return;const m=S.matches[mi];delete m.final;sync(m,mi);save();render()}
 // New hole-by-hole live scoring screen (Sept 30, 2026). liveViewOld below is the previous screen, kept for reference and not called.
 const lvLast=m=>{const d=S.sc[m.d]||{},o=order(m);let h=-1;for(let i=0;i<18;i++)if(o.some(k=>((d[k]||[])[i])!=null))h=i;return Math.max(0,h)};
 const lvFirst=(m,h)=>{const d=S.sc[m.d]||{},o=lvOrd(m);return o.find(k=>((d[k]||[])[h])==null)||o[0]};
@@ -1578,7 +1587,7 @@ render();if(!was){clearTimeout(LVT);LVT=setTimeout(()=>{if(!LV||LV.mi!=mi||LV.h!
 function kp(n){if(isRO()||!LV||!COURSE[S.matches[LV.mi].d])return;if(isSplit(S.matches[LV.mi])&&LV.grp!=null&&!lvOrd(S.matches[LV.mi]).includes(LV.k))return;const m=S.matches[LV.mi],o=S.sc[m.d]=S.sc[m.d]||{},k=LV.k,a=o[k]=o[k]||Array(18).fill(null),h=LV.h,was=lvDone(m,h);
 (LV.hist=LV.hist||[]).push({k,h,prev:a[h]});if(LV.hist.length>60)LV.hist.shift();a[h]=a[h]===n?null:n;sync(m,LV.mi);lvAdv(m,was)}
 function lvClr(){if(isRO()||!LV)return;const m=S.matches[LV.mi],a=(S.sc[m.d]||{})[LV.k];if(a&&a[LV.h]!=null){(LV.hist=LV.hist||[]).push({k:LV.k,h:LV.h,prev:a[LV.h]});a[LV.h]=null;sync(m,LV.mi)}clearTimeout(LVT);render()}
-function lvUndo(){if(!LV||!LV.hist||!LV.hist.length)return;const u=LV.hist.pop(),m=S.matches[LV.mi],o=S.sc[m.d]=S.sc[m.d]||{},a=o[u.k]=o[u.k]||Array(18).fill(null);a[u.h]=u.prev;sync(m,LV.mi);LV.h=u.h;LV.k=u.k;LV.tab='hole';LV.look=true;clearTimeout(LVT);render()}
+function lvUndo(){if(isRO())return;if(!LV||!LV.hist||!LV.hist.length)return;const u=LV.hist.pop(),m=S.matches[LV.mi],o=S.sc[m.d]=S.sc[m.d]||{},a=o[u.k]=o[u.k]||Array(18).fill(null);a[u.h]=u.prev;sync(m,LV.mi);LV.h=u.h;LV.k=u.k;LV.tab='hole';LV.look=true;clearTimeout(LVT);render()}
 let SWX=null;
 function swipeInit(){try{const mn=document.getElementById('main');if(!mn||mn._sw)return;mn._sw=1;
 mn.addEventListener('touchstart',e=>{SWX=null;if(!LV||tab!='m'||(LV.tab||'hole')!='hole'||e.touches.length!=1)return;if(e.target.closest('.lvk,.lvex,button.lvm,.lvx'))return;const q=e.touches[0];SWX={x:q.clientX,y:q.clientY,t:Date.now()}},{passive:true});
@@ -1805,8 +1814,8 @@ const DEFPICS={Belon:'p-Belon.97c024ec.jpg',Weidaw:'p-Weidaw.557054e8.jpg',Justi
 function seedPics(){let ch=false;S.teams.forEach((t,ti)=>t.p.forEach((n,pi)=>{const k=ti+'_'+pi;if(DEFPICS[n]&&!PPICS[k]){PPICS[k]=DEFPICS[n];ch=true}}));if(ch)savePPics()}
 seedPics();
 function setPhoto(ti,pi,durl){PPICS[ti+'_'+pi]=durl;savePPics();if(DB){DB.collection('playerphotos').doc(ti+'_'+pi).set({img:durl}).catch(()=>{})}render()}
-function clearPhoto(ti,pi,ev){if(ev)ev.stopPropagation();delete PPICS[ti+'_'+pi];savePPics();if(DB){DB.collection('playerphotos').doc(ti+'_'+pi).delete().catch(()=>{})}render()}
-async function pickPPic(ti,pi,input){const f=input&&input.files&&input.files[0];input.value='';if(!f||!/^image\//.test(f.type))return;
+function clearPhoto(ti,pi,ev){if(ev)ev.stopPropagation();if(isRO())return;delete PPICS[ti+'_'+pi];savePPics();if(DB){DB.collection('playerphotos').doc(ti+'_'+pi).delete().catch(()=>{})}render()}
+async function pickPPic(ti,pi,input){if(isRO()){if(input)input.value='';return}const f=input&&input.files&&input.files[0];input.value='';if(!f||!/^image\//.test(f.type))return;
 try{const durl=await (async()=>{let dim=640,q=0.8,out=null;for(let i=0;i<6;i++){out=await pShrink(f,dim,q);if(out.length<=90000)return out;if(i%2==0)q=Math.max(0.4,q-0.15);else dim=Math.max(240,Math.round(dim*0.75))}return out})();
 setPhoto(ti,pi,durl)}catch(e){}}
 function reindexPPics(ti,pi){const t=S.teams[ti],n={};Object.keys(PPICS).forEach(k=>{const[t2,p2]=k.split('_').map(Number);if(t2!=ti||p2<pi)n[k]=PPICS[k];else if(p2>pi)n[t2+'_'+(p2-1)]=PPICS[k]});PPICS=n;savePPics()}
@@ -1825,9 +1834,9 @@ function mrow(m,mi,j){const nm=i=>m.l[i].map(x=>esc(S.teams[i].p[x]||'')).join('
 return `<div class="ms"><span>M${j+1}${m.l[0].length&&m.l[1].length?' · '+nm(0)+' v '+nm(1):''}</span><b>${mst(m)}</b><button class="add" onclick="live(${mi})">Score</button></div>`}
 function pick(ti,pi,h){clearTimeout(LVT);LV.k=ti+'_'+pi;LV.h=h;render()}
 function step(d){const m=S.matches[LV.mi],o=order(m),n=o.length;if(!n)return;const i=LV.h*n+Math.max(0,o.indexOf(LV.k))+d;if(i<0||i>=18*n)return;LV.h=Math.floor(i/n);LV.k=o[i%n];render()}
-function ch(ti,pi,n){const m=S.matches[LV.mi],o=S.sc[m.d]=S.sc[m.d]||{},k=ti+'_'+pi,a=o[k]=o[k]||Array(18).fill(null),h=LV.h;
+function ch(ti,pi,n){if(isRO())return;const m=S.matches[LV.mi],o=S.sc[m.d]=S.sc[m.d]||{},k=ti+'_'+pi,a=o[k]=o[k]||Array(18).fill(null),h=LV.h;
 a[h]=a[h]===n?null:n;sync(m,LV.mi);if(a[h]!=null)step(1);else render()}
-function clr1(){const m=S.matches[LV.mi],a=(S.sc[m.d]||{})[LV.k];if(a){a[LV.h]=null;sync(m,LV.mi)}render()}
+function clr1(){if(isRO())return;const m=S.matches[LV.mi],a=(S.sc[m.d]||{})[LV.k];if(a){a[LV.h]=null;sync(m,LV.mi)}render()}
 function ctr(){try{const c=document.querySelector('.sgw'),s=document.querySelector('td.sel');if(c&&s&&s.offsetLeft!=null)c.scrollLeft=s.offsetLeft-c.clientWidth/2+s.offsetWidth/2}catch(e){}}
 let DB=null,SY='local',AUTH_OK=false;const LP={},LPV={},TM={},BZ={};
 // DRT = fields edited on this phone whose upload has not been confirmed yet. It is saved on the phone, so an edit survives the app being closed before it syncs.
@@ -1898,7 +1907,8 @@ try{
   LP[key]=val;LPV[key]=v;RT=0;HOLD=0;DENIED=false;if(/^m\d+$/.test(docId))WROTE[+docId.slice(1)]=1;if(curVal(docId,field)===val)clean(key);setSy('live');
   const hd=HELD[key];delete HELD[key];if(hd&&hd.val!==val){if(pend(key))HELD[key]=hd;else if(apField(docId,field,hd.val,hd.v))rr()} // the database's latest value for this field arrived while our write was in flight: take it now (the last write to reach the database wins on every phone)
 }catch(e){
-  DIAG.wr={code:(e&&e.code)||'error',t:Date.now()};if(e&&e.code=='permission-denied'){setSy('ro');DENIED=true;clean(key);revert(docId,field);rr()} // wrong/missing access code: the change is taken back off this screen and the phone stays view-only until the code is changed
+  DIAG.wr={code:(e&&e.code)||'error',t:Date.now()};if(e&&e.code=='permission-denied'&&(REGS=='ok'||REGS=='legacy')&&!DENIED){setTimeout(regDevice,0)} // is the code still good? check again
+if(e&&e.code=='permission-denied'){setSy('ro');DENIED=true;clean(key);revert(docId,field);rr()} // wrong/missing access code: the change is taken back off this screen and the phone stays view-only until the code is changed
   else{setSy(navigator.onLine===false?'off':'connecting');if(Date.now()>=HOLD){RT=Math.min(15000,(RT||750)*2);HOLD=Date.now()+RT;setTimeout(pa,RT+50)}} // any other error is temporary: keep the edit, retry with back-off (one step per round, not per failed write)
 }
 delete BZ[key];pa()}
@@ -1946,15 +1956,21 @@ const DIAG={auth:'',init:'',snap:{},err:{},wr:null,t0:Date.now()};
 let REGS='pending'; // pending | ok (registered under the locked-down rules) | legacy (old rules, or this phone's code was not accepted)
 const FDEL=()=>{try{return firebase.firestore.FieldValue.delete()}catch(e){return undefined}};
 const codeBit=()=>{if(REGS=='legacy')return{code:EVENT_CODE};const d=FDEL();return d===undefined?{}:{code:d}}; // locked-down mode also removes any code left in a record by the old app
-async function regDevice(){if(PRACTICE||VIEWER||!DB)return;REGS='pending';try{const u=firebase.auth().currentUser;if(!u)throw{code:'noauth'};await DB.doc('writers/'+u.uid).set({code:EVENT_CODE,ts:Date.now()});REGS='ok'}catch(e){DIAG.reg=(e&&(e.code||e.message))||'error';REGS=(e&&(e.code=='unavailable'||e.code=='noauth'))?'pending':'legacy'}
+async function dropUnsent(){try{Object.keys(DRT).forEach(k=>{const j=k.indexOf('.');if(j>0){try{revert(k.slice(0,j),k.slice(j+1))}catch(e){}}clean(k)})}catch(e){}}
+async function regDevice(){if(PRACTICE||VIEWER||!DB)return;
+if(!EVENT_CODE){REGS='denied';setCodeOk(false);render();return} // no code entered: nothing to check and nothing to send
+REGS='pending';
+try{const u=firebase.auth().currentUser;if(!u)throw{code:'noauth'};await DB.doc('writers/'+u.uid).set({code:EVENT_CODE,ts:Date.now()});REGS='ok';setCodeOk(true);if(DENIED){DENIED=false;if(SY=='ro')setSy('live')}}
+catch(e){DIAG.reg=(e&&(e.code||e.message))||'error';const tr=x=>x&&(x.code=='unavailable'||x.code=='noauth'||x.code=='deadline-exceeded');
+ if(tr(e))REGS='pending';
+ else if(STALE)REGS='pending';
+ else{try{await DB.doc('meta/main').set({build:Math.max(KNOWNB,BUILD),code:EVENT_CODE},{merge:true});REGS='legacy';setCodeOk(true);if(DENIED){DENIED=false;if(SY=='ro')setSy('live')}} // the database is on the old rules: the same code check, done by a harmless write
+  catch(e2){if(tr(e2))REGS='pending';else{REGS='denied';setCodeOk(false);await dropUnsent();setSy('ro');DENIED=true}}}}
 if(REGS=='pending')setTimeout(()=>{if(REGS=='pending')regDevice()},3000);
 render();pa()}
-function ensureCode(){if(VIEWER){EVENT_CODE='';return ''}try{EVENT_CODE=localStorage.getItem('rbc_code')}catch(e){}
-if(!EVENT_CODE){EVENT_CODE=(prompt('Enter this event\'s access code (ask the commissioner):')||'').trim();
-try{localStorage.setItem('rbc_code',EVENT_CODE)}catch(e){}}
-return EVENT_CODE}
-function changeCode(){const v=(prompt('Enter an access code. The real edit code unlocks scoring and pairings; anything else is view-only.',EVENT_CODE||'')||'').trim();
-EVENT_CODE=v;DENIED=false;try{localStorage.setItem('rbc_code',v)}catch(e){}setSy(DB?'connecting':'local');render();regDevice()}
+function ensureCode(){if(VIEWER){EVENT_CODE='';return ''}try{EVENT_CODE=localStorage.getItem('rbc_code')||''}catch(e){}loadCodeOk();return EVENT_CODE}
+function changeCode(){const v=(prompt('Enter the access code (ask the commissioner). Without the right code this phone can only watch.',EVENT_CODE||'')||'').trim();
+EVENT_CODE=v;DENIED=false;setCodeOk(false);try{localStorage.setItem('rbc_code',v)}catch(e){}setSy(DB?'connecting':'local');render();regDevice()}
 async function initDb(){
 if(PRACTICE){setSy('practice');return}
 try{
@@ -1995,8 +2011,8 @@ const c=apField('settings','settings',dd.j,dd.v);if(!d.metadata.fromCache)f3=0;i
 subMatch();subMeta();subSet();
 DB.collection('playerphotos').onSnapshot(sn=>{let ch=false;sn.docs.forEach(d=>{const data=d.data(),im=data&&/^[01]_[0-6]$/.test(d.id)?SAFEIMG(data.img):'';if(im&&PPICS[d.id]!==im){PPICS[d.id]=im;ch=true}});if(ch){savePPics();rr()}},()=>{});
 pa()}
-function more(){if(MS)return `<button class="add" style="margin-bottom:12px" onclick="MS=null;render()">← More</button>`+(MS=='h'?history():MS=='r'?rules():MS=='th'?themePage():MS=='i'?installPage():MS=='ph'?photosPage():MS=='pw'?rbPage():MS=='pwd'?rbDetail(PWD.ti,PWD.pi):MS=='pair'?rbPairPage():MS=='lb'?leaderboardPage():MS=='pay'?payoutsPage():MS=='bet'?betPage():MS=='rc'?recapPage():MS=='arc'?archivePage(ARCY):VIEWER?'':admin());
-return `<div class="card" style="padding:4px 14px">`+[['pw','Power rankings','All 14 players ranked 1 to 14'],['h','History','All-time records and the scoring log'],['pay','Payouts','Who wins the side-bet pots'],['bet','Betting','Live odds on the weekend'],['r','Rules','Format, scoring and awards'],['ph','Photo album','Trip photos, one album per year'],['th','Appearance','Light, dark or match your device'],['i','Install app','Add to your home screen'],['a','Admin','Event name, access code, Nassau points and reset']].filter(a=>!(VIEWER&&a[0]=='a')).concat(VIEWER?[['si','Scorer sign-in','Switch this phone to scoring']]:[]).map(([k,t,d])=>`<button class="mi" onclick="${k=='si'?'scorerSignIn()':k=='cc'?'changeCode()':`MS='${k}';${k=='ph'?'pSub(PY);':''}render();scrollTo(0,0)`}"><span><b>${t}</b><small>${d}</small></span><i>›</i></button>`).join('')+`</div>`}
+function more(){if(MS)return `<button class="add" style="margin-bottom:12px" onclick="MS=null;render()">← More</button>`+(MS=='h'?history():MS=='r'?rules():MS=='th'?themePage():MS=='i'?installPage():MS=='ph'?photosPage():MS=='pw'?rbPage():MS=='pwd'?rbDetail(PWD.ti,PWD.pi):MS=='pair'?rbPairPage():MS=='lb'?leaderboardPage():MS=='pay'?payoutsPage():MS=='bet'?betPage():MS=='rc'?recapPage():MS=='arc'?archivePage(ARCY):VIEWER?'':(canEdit()?admin():accessPage()));
+return `<div class="card" style="padding:4px 14px">`+[['pw','Power rankings','All 14 players ranked 1 to 14'],['h','History','All-time records and the scoring log'],['pay','Payouts','Who wins the side-bet pots'],['bet','Betting','Live odds on the weekend'],['r','Rules','Format, scoring and awards'],['ph','Photo album','Trip photos, one album per year'],['th','Appearance','Light, dark or match your device'],['i','Install app','Add to your home screen'],['a','Admin','Event name, access code, Nassau points and reset']].filter(a=>!(VIEWER&&a[0]=='a')).map(a=>a[0]=='a'&&!VIEWER&&!canEdit()?['a','Access code','Enter the code to score and edit']:a).concat(VIEWER?[['si','Scorer sign-in','Switch this phone to scoring']]:[]).map(([k,t,d])=>`<button class="mi" onclick="${k=='si'?'scorerSignIn()':k=='cc'?'changeCode()':`MS='${k}';${k=='ph'?'pSub(PY);':''}render();scrollTo(0,0)`}"><span><b>${t}</b><small>${d}</small></span><i>›</i></button>`).join('')+`</div>`}
 let INSTALLP=null,INSTALLED=false;
 try{
  if(typeof window!=='undefined'){
@@ -2045,7 +2061,7 @@ async function pBudget(file){let dim=1400,q=0.75,out=null;
 for(let i=0;i<7;i++){out=await pShrink(file,dim,q);if(out.length<=180000)return out;if(i%2==0)q=Math.max(0.35,q-0.15);else dim=Math.max(480,Math.round(dim*0.75))}
 return out}
 let PST=null; // null = not tried yet, true = Firebase Storage works, false = unavailable (photos are saved the older way inside the database instead)
-async function addPhotos(files){if(!DB||!files||!files.length)return;PBUSY=files.length;render();
+async function addPhotos(files){if(isRO()||!DB||!files||!files.length)return;PBUSY=files.length;render();
 for(const f of Array.from(files)){if(!/^image\//.test(f.type)){PBUSY--;continue}
 try{let doc=null;const by=(NICK||'').slice(0,30);
 if(PST!==false&&typeof firebase!=='undefined'&&firebase.storage){try{const full=await pShrink(f,1600,0.82),thumb=await pShrink(f,360,0.7),blob=await (await fetch(full)).blob(),path='photos/'+PY+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.jpg',ref=firebase.storage().ref(path);await ref.put(blob,{contentType:'image/jpeg'});const url=await ref.getDownloadURL();PST=true;doc={year:PY,url,path,thumb,ts:Date.now(),by}}catch(e){PST=false}}
