@@ -690,7 +690,7 @@ let ss=0,df=0;Object.keys(rows).forEach(n=>{const a=rows[n];if(a.length<2)return
 Object.keys(rows).forEach(n=>{const a=rows[n],k=a.length,m=wmean(a);let s2=pv;if(k>=2){s2=0;a.forEach(x=>{s2+=(x-m)*(x-m)});s2/=k-1}const v=(k*s2+BET_PRIOR*pv)/(k+BET_PRIOR);pm[n]={b:k/(k+BET_PRIOR)*m,sd:Math.min(6.5,Math.max(2.5,Math.sqrt(v))),n:k}});
 return{pm,pv,K:ks.length?wmean(ks):0,pool:Math.sqrt(pv)}}
 function betRounds(M){const out={};DAYS.forEach(d=>{const cs=COURSE[d],par=cs?cs.par:Array(18).fill(4);out[d]={par,rows:[]};S.teams.forEach((t,ti)=>t.p.forEach((nm,pi)=>{const n=wan(nm),r=roundNet(d,ti,pi),nets=r?r.nets:Array(18).fill(null);let so=0,pl=0,rp=0;for(let h=0;h<18;h++){if(nets[h]!=null){so+=nets[h];pl++}else rp+=par[h]}
-const m=M.pm[n]||{b:0,sd:Math.min(6.5,Math.max(2.5,M.pool*1.1))};out[d].rows.push({n:nm,ti,pi,so,r:18-pl,rp,b:m.b,sd:m.sd,nets,par})}))});return out}
+const m=M.pm[n]||{b:0,sd:Math.min(6.5,Math.max(2.5,M.pool))};out[d].rows.push({n:nm,ti,pi,so,r:18-pl,rp,b:m.b,sd:m.sd,nets,par})}))});return out}
 function* betSimNet(R,K){const rng=betRng(7771),N=BET_NN,nd=DAYS.length,P=R.Friday.rows.length,names=R.Friday.rows.map(x=>x.n),base=[],cf=[],bb=[],sr=[],fx=[];
 DAYS.forEach(d=>{const rs=R[d].rows;base.push(Float64Array.from(rs.map(x=>x.so+x.rp)));cf.push(Float64Array.from(rs.map(x=>x.r/18)));bb.push(Float64Array.from(rs.map(x=>x.b)));sr.push(Float64Array.from(rs.map(x=>x.sd*Math.sqrt(x.r/18))));fx.push(Uint8Array.from(rs.map(x=>x.r==0?1:0)))});
 const dayW=DAYS.map(()=>new Float64Array(P)),wk=new Float64Array(P),f=DAYS.map(()=>new Float64Array(P)),e=new Float64Array(nd),w=1/N;
@@ -726,9 +726,9 @@ for(let s=0;s<N;s++){if(s%250==249)yield;const pp=[S.teams[0].p.map(()=>0),S.tea
  [['sun',lead,1],['ger',tr,1],['alan',tr,0]].forEach(([k,ti,mx])=>{const w=pick(ti,mx);w.forEach(i=>{const n=S.teams[ti].p[i];acc[k][n]=(acc[k][n]||0)+1/w.length})})}
 Object.keys(acc).forEach(k=>Object.keys(acc[k]).forEach(n=>{acc[k][n]/=Math.max(1,used)}));return acc}
 const betVisible=id=>/Saturday$/.test(id)?dayDone('Friday'):/Sunday$/.test(id)?dayDone('Saturday'):true; // Saturday lines appear when Friday is complete, Sunday lines when Saturday is complete
-function betPriceNum(p,vig,live){const rd=x=>{const s=x>=1000?100:x>=300?25:5;return Math.round(x/s)*s};
-if(live){const q=Math.min(.985,Math.max(.005,p*(1+vig)));return q>=.5?-Math.min(5000,Math.max(100,rd(100*q/(1-q)))):Math.min(20000,Math.max(100,rd(100*(1-q)/q)))} // live line: always a price
-if(p<BET_MIN)return null;if(p>=.996)return 0;const q=Math.min(.985,Math.max(.012,p*(1+vig)));if(q>=.5)return-Math.min(5000,Math.max(100,rd(100*q/(1-q))));return Math.min(20000,Math.max(100,rd(100*(1-q)/q)))}
+function betPriceNum(p,vig,live){const rd=x=>{const s=x>=1000?100:x>=300?25:5;return Math.round(x/s)*s},FAV=1000,DOG=10000; // prices a sportsbook would really post: a favourite never shorter than -1000, a longshot never longer than +10000
+if(live){const q=Math.min(.985,Math.max(.005,p*(1+vig)));return q>=.5?-Math.min(FAV,Math.max(100,rd(100*q/(1-q)))):Math.min(DOG,Math.max(100,rd(100*(1-q)/q)))} // live line: always a price
+if(p<BET_MIN)return null;if(p>=.996)return 0;const q=Math.min(.985,Math.max(.012,p*(1+vig)));if(q>=.5)return-Math.min(FAV,Math.max(100,rd(100*q/(1-q))));return Math.min(DOG,Math.max(100,rd(100*(1-q)/q)))}
 function betResolve(id){const done=d=>dayDone(d),all=S.matches.length>0&&S.matches.every(mFin),back=n=>S.teams.flatMap(t=>t.p).find(x=>wan(x)===n)||n;
 const rowsOf=d=>bagStatsDay(d).filter(r=>r.holesN==18);const lowest=ds=>{const rs=[].concat(...ds.map(rowsOf));if(!rs.length)return null;const mn=Math.min(...rs.map(r=>r.totalNet));return[...new Set(rs.filter(r=>r.totalNet==mn).map(r=>r.name))]};
 const aw=()=>awardsAll(),ev=k=>{const a=aw(),o=[];Object.keys(a).forEach(n=>(a[n][k]||[]).forEach(w=>{if(w.y=='2027'&&!w.prov)o.push(back(n))}));return o};
