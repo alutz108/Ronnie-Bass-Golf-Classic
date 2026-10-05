@@ -411,6 +411,7 @@ details.acc{padding:0}details.acc>summary{list-style:none;display:flex;align-ite
 th[onclick]{height:44px}.pfw input{min-width:44px;min-height:44px}
 .lvtabs button{min-height:44px}.omore button{min-height:44px;padding-left:10px;padding-right:2px}.lvc{max-width:36px}
 .lvb button{min-height:44px}
+.lvch{display:block;width:100%;margin-top:8px;min-height:44px;border-radius:12px;border:1.5px solid #4d6f86;background:transparent;color:#d7e2e9;font:800 14px 'Barlow Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase}.lvch.sure{border-color:#f4968c;color:#f4968c;background:rgba(244,150,140,.12)}.lvkh button{position:relative}.lvkh button::after{content:'';position:absolute;inset:-8px -8px}
 </style></head><body>
 <header><img src="logo.6751ba0b.webp" alt="Ronnie Bass Classic logo">
 <div id="hd"><span class="lbl" id="lbl"></span><h1><span id="ev"></span></h1></div><span id="sy" class="sy"></span></header>
@@ -425,7 +426,7 @@ th[onclick]{height:44px}.pfw input{min-width:44px;min-height:44px}
 // PRACTICE: a sandbox tournament that lives only on this phone. It uses its own saved copy, never connects to the shared database, and cannot change the real event.
 const PRACTICE=(()=>{try{const s=location.search;if(/[?&]practice=(0|off)(&|$)/.test(s)||/[?&]scorer(=|&|$)/.test(s)){localStorage.removeItem('rbc_practice_on');return false}if(/[?&]practice(=1|=on|=true)?(&|$)/.test(s)){localStorage.setItem('rbc_practice_on','1');return true}return localStorage.getItem('rbc_practice_on')=='1'}catch(e){return false}})();
 const KEY=PRACTICE?'rbc_practice_v1':'rbc_v2',$=s=>document.querySelector(s);
-const BUILD=31; // bump together with CACHE in sw.js on every release; a phone running an older build than the event's is held back from saving (see STALE)
+const BUILD=32; // bump together with CACHE in sw.js on every release; a phone running an older build than the event's is held back from saving (see STALE)
 let UPDREADY=false,STALE=false,DENIED=false,RRDEF=false,PENDM={},FRESH=false,KNOWNB=0,LSET=null,SMSG='',PAIRC=null,PAIRDAY=null,PAIRMSG='';
 const HELD={};
 const VIEWER=(()=>{try{if(PRACTICE)return false;const s=location.search,w=/[?&]watch(=|&|$)/.test(s)||location.hash=='#watch';if(/[?&]scorer(=|&|$)/.test(s))localStorage.removeItem('rbc_watch');else if(w)localStorage.setItem('rbc_watch','1');return !/[?&]scorer(=|&|$)/.test(s)&&(w||localStorage.getItem('rbc_watch')=='1')}catch(e){return false}})(),roBase=()=>VIEWER||SY=='ro'||STALE||!canEdit(),isRO=()=>roBase()||!!(typeof S==='object'&&S&&S.closed);
@@ -1443,7 +1444,7 @@ function reset(b){if(S.closed)return;if(!b.dataset.c){b.dataset.c=1;b.textConten
 S.matches.forEach(m=>m.s=m.s.map(()=>null));S.awards={};S.sc={};lg('All scores reset');render()}
 const TEET={Friday:[['1:10 PM'],['1:20 PM'],['1:30 PM','1:40 PM']],Saturday:[['10:10 AM'],['10:20 AM'],['10:30 AM','10:40 AM']]};
 const TEETD={Sunday:['8:30 AM','8:40 AM','8:50 AM','9:00 AM']}; // Sunday: tee times for the four playing groups, shown once for the day
-let MDAY=null,MOPEN={};
+let MDAY=null,MOPEN={},LVCT=0;
 function mday(d){MDAY=d;render();scrollTo(0,0)}
 function mtog(mi){MOPEN[mi]=!MOPEN[mi];render()}
 function dayPts(d){let a=0,b=0;S.matches.forEach(m=>{if(m.d!=d)return;m.s.forEach((v,k)=>{if(!v)return;const p=m.pv[k];if(v.w=='H'){a+=p/2;b+=p/2}else if(v.w=='A')a+=p;else b+=p})});return[a,b]}
@@ -1624,7 +1625,11 @@ render();if(!was){clearTimeout(LVT);LVT=setTimeout(()=>{if(!LV||LV.mi!=mi||LV.h!
 function kp(n){if(isRO()||!LV||!COURSE[S.matches[LV.mi].d])return;if(isSplit(S.matches[LV.mi])&&LV.grp!=null&&!lvOrd(S.matches[LV.mi]).includes(LV.k))return;const m=S.matches[LV.mi],o=S.sc[m.d]=S.sc[m.d]||{},k=LV.k,a=o[k]=o[k]||Array(18).fill(null),h=LV.h,was=lvDone(m,h);
 (LV.hist=LV.hist||[]).push({k,h,prev:a[h]});if(LV.hist.length>60)LV.hist.shift();a[h]=a[h]===n?null:n;sync(m,LV.mi);lvAdv(m,was)}
 function lvClr(){if(isRO()||!LV)return;const m=S.matches[LV.mi],a=(S.sc[m.d]||{})[LV.k];if(a&&a[LV.h]!=null){(LV.hist=LV.hist||[]).push({k:LV.k,h:LV.h,prev:a[LV.h]});a[LV.h]=null;sync(m,LV.mi)}clearTimeout(LVT);render()}
-function lvUndo(){if(isRO())return;if(!LV||!LV.hist||!LV.hist.length)return;const u=LV.hist.pop(),m=S.matches[LV.mi],o=S.sc[m.d]=S.sc[m.d]||{},a=o[u.k]=o[u.k]||Array(18).fill(null);a[u.h]=u.prev;sync(m,LV.mi);LV.h=u.h;LV.k=u.k;LV.tab='hole';LV.look=true;clearTimeout(LVT);render()}
+function lvUndo(){if(isRO())return;if(!LV||!LV.hist||!LV.hist.length)return;const u=LV.hist.pop(),m=S.matches[LV.mi],o=S.sc[m.d]=S.sc[m.d]||{},items=u.multi||[u];items.forEach(x=>{const a=o[x.k]=o[x.k]||Array(18).fill(null);a[x.h]=x.prev});sync(m,LV.mi);LV.h=items[0].h;LV.k=items[0].k;LV.tab='hole';LV.look=true;clearTimeout(LVT);render()}
+// Clear the whole hole: every score on this hole for the players this phone is scoring (in a split match, its own group). Asks for a second tap; Undo puts them all back.
+function lvClrHole(){if(isRO()||!LV)return;const m=S.matches[LV.mi],o=S.sc[m.d]||{},h=LV.h,ks=lvOrd(m).filter(k=>((o[k]||[])[h])!=null);if(!ks.length){LV.chc=0;render();return}
+if(!LV.chc){LV.chc=1;clearTimeout(LVCT);LVCT=setTimeout(()=>{if(LV&&LV.chc){LV.chc=0;render()}},4000);render();return}
+LV.chc=0;clearTimeout(LVCT);const s=S.sc[m.d];(LV.hist=LV.hist||[]).push({multi:ks.map(k=>({k,h,prev:s[k][h]}))});if(LV.hist.length>60)LV.hist.shift();ks.forEach(k=>{s[k][h]=null});sync(m,LV.mi);const f=lvOrd(m)[0];if(f)LV.k=f;LV.look=false;clearTimeout(LVT);render()}
 let SWX=null;
 function swipeInit(){try{const mn=document.getElementById('main');if(!mn||mn._sw)return;mn._sw=1;
 mn.addEventListener('touchstart',e=>{SWX=null;if(!LV||tab!='m'||(LV.tab||'hole')!='hole'||e.touches.length!=1)return;if(e.target.closest('.lvk,.lvex,button.lvm,.lvx'))return;const q=e.touches[0];SWX={x:q.clientX,y:q.clientY,t:Date.now()}},{passive:true});
@@ -1648,8 +1653,8 @@ const d=S.sc[m.d]||{},ks=grpKeys(m,g);let h=17,k=ks[ks.length-1],f=0;for(let i=0
 function lvGroupChips(m,isF){const tm=grpTimes(m);return `<div class="lvgs">${[0,1].map(g=>{const n=grpHoles(m,g),cur=Math.min(18,n+1),bars=Array.from({length:18},(_,i)=>`<i class="${i<n?'d':i==n?'c':''}"></i>`).join(''),me=!isF&&LV.grp===g;
 return `<button class="lvgc${me?' me':''}"${isRO()?' disabled':''} onclick="lvGrp(${g})"><span><b>${esc(tm[g]||'Group '+(g+1))}${me?' \u00b7 YOU':''}</b><em>${n>=18?'DONE':'HOLE '+cur}</em></span><small>${esc(S.teams[g].n)} \u00b7 ${m.l[g].map(pi=>esc(S.teams[g].p[pi])).join(', ')}</small><span class="lvgb">${bars}</span></button>`}).join('')}</div>`}
 function lvKeypad(o,h,par,mx){const v0=(o[LV.k]||[])[h],lb=['Birdie','Par','Bogey','Double'],ks=[-1,0,1,2].map((q,i)=>[par+q,lb[i]]).filter(a=>a[0]>=1&&a[0]<=mx),ex=[];for(let q=1;q<=mx;q++)if(!ks.some(a=>a[0]==q))ex.push(q);
-const pn=k=>esc(S.teams[+k[0]].p[+k.split('_')[1]]);
-return `<div class="lvk"><div class="lvkh"><span><b>${pn(LV.k)}</b> \u00b7 hole ${h+1} \u00b7 par ${par}</span><button onclick="lvClr()">Clear</button></div><div class="lvkeys">${ks.map(a=>`<button class="lvkey${v0===a[0]?' on':''}" onclick="kp(${a[0]})"><b>${a[0]}</b><small>${a[1]}</small></button>`).join('')}<button class="lvkey mo" onclick="lvMore()"><b>\u00b7\u00b7\u00b7</b><small>MORE</small></button></div>${LV.more?`<div class="lvex">${ex.map(q=>`<button class="${v0===q?'on':''}" onclick="kp(${q})">${q}</button>`).join('')}</div>`:''}</div>`}
+const pn=k=>esc(S.teams[+k[0]].p[+k.split('_')[1]]),nh=lvOrd(S.matches[LV.mi]).filter(k=>((o[k]||[])[h])!=null).length;
+return `<div class="lvk"><div class="lvkh"><span><b>${pn(LV.k)}</b> \u00b7 hole ${h+1} \u00b7 par ${par}</span><button onclick="lvClr()">Clear</button></div><div class="lvkeys">${ks.map(a=>`<button class="lvkey${v0===a[0]?' on':''}" onclick="kp(${a[0]})"><b>${a[0]}</b><small>${a[1]}</small></button>`).join('')}<button class="lvkey mo" onclick="lvMore()"><b>\u00b7\u00b7\u00b7</b><small>MORE</small></button></div>${LV.more?`<div class="lvex">${ex.map(q=>`<button class="${v0===q?'on':''}" onclick="kp(${q})">${q}</button>`).join('')}</div>`:''}${nh?`<button class="lvch${LV.chc?' sure':''}" onclick="lvClrHole()">${LV.chc?'Tap again to clear '+nh+' score'+(nh==1?'':'s')+' on hole '+(h+1):'Clear whole hole'}</button>`:''}</div>`}
 function lvSplitHole(m,mi,c){const{o,h,par,mx,cs,st,isF,ro,r}=c,tm=grpTimes(m),sh=i=>esc(grpShort(i).toUpperCase()),dec=r[h]!=null,pn=k=>esc(S.teams[+k[0]].p[+k.split('_')[1]]);let x='';
 const allIn=m.s.every(z=>z)&&Array.from({length:18},(_,q)=>lvDoneAll(m,q)).every(Boolean);
 if(allIn&&!m.final&&!ro)x+=`<div class="lvb ta" style="background:var(--teal);margin-top:0"><span>Match complete \u00b7 all 18 holes are in</span><button onclick="finalizeMatch(${mi})">Submit final score</button></div>`;
@@ -1701,7 +1706,7 @@ x+=`<div class="lvb${bc}"><span>${bn}</span>${!isF&&LV.hist&&LV.hist.length?`<bu
 if(!cs&&!isF)x+=`<div class="lvk fl"><span>Choose the course above to start scoring.</span></div>`;
 else if(isF)x+=`<div class="lvk fl"><span>${STALE?'This app is out of date. Tap UPDATE at the top to keep scoring.':ro?(VIEWER?'Watching live. This view moves to each new score.':'View only. Enter the access code under More \u203a Admin to score.'):LV.look?'Looking back. Jump to live to follow the round.':'Following live. This view moves to each new score.'}</span>${!ro&&LV.look?`<button onclick="lvLive()">Jump to live</button>`:''}</div>`;
 else{const v0=(o[LV.k]||[])[h],lb=['Birdie','Par','Bogey','Double'],ks=[-1,0,1,2].map((q,i)=>[par+q,lb[i]]).filter(a=>a[0]>=1&&a[0]<=mx),ex=[];for(let q=1;q<=mx;q++)if(!ks.some(a=>a[0]==q))ex.push(q);
-x+=`<div class="lvk"><div class="lvkh"><span><b>${pn(LV.k)}</b> \u00b7 hole ${h+1} \u00b7 par ${par}</span><button onclick="lvClr()">Clear</button></div><div class="lvkeys">${ks.map(a=>`<button class="lvkey${v0===a[0]?' on':''}" onclick="kp(${a[0]})"><b>${a[0]}</b><small>${a[1]}</small></button>`).join('')}<button class="lvkey mo" onclick="lvMore()"><b>\u00b7\u00b7\u00b7</b><small>MORE</small></button></div>${LV.more?`<div class="lvex">${ex.map(q=>`<button class="${v0===q?'on':''}" onclick="kp(${q})">${q}</button>`).join('')}</div>`:''}</div>`}
+x+=`<div class="lvk"><div class="lvkh"><span><b>${pn(LV.k)}</b> \u00b7 hole ${h+1} \u00b7 par ${par}</span><button onclick="lvClr()">Clear</button></div><div class="lvkeys">${ks.map(a=>`<button class="lvkey${v0===a[0]?' on':''}" onclick="kp(${a[0]})"><b>${a[0]}</b><small>${a[1]}</small></button>`).join('')}<button class="lvkey mo" onclick="lvMore()"><b>\u00b7\u00b7\u00b7</b><small>MORE</small></button></div>${LV.more?`<div class="lvex">${ex.map(q=>`<button class="${v0===q?'on':''}" onclick="kp(${q})">${q}</button>`).join('')}</div>`:''}${(()=>{const nh=lvOrd(m).filter(k=>((o[k]||[])[h])!=null).length;return nh?`<button class=\"lvch${LV.chc?' sure':''}\" onclick=\"lvClrHole()\">${LV.chc?'Tap again to clear '+nh+' score'+(nh==1?'':'s')+' on hole '+(h+1):'Clear whole hole'}</button>`:''})()}</div>`}
 }}
 else if(tb=='card'){
 const cell=(t,p,i)=>{const k=t+'_'+p,v=(o[k]||[])[i],pr=cs?cs.par[i]:4,d=v==null?null:v-pr,n=gs(st[k]||0,cs,i),cl=v==null?'e':d<=-2?'eg':d==-1?'bi':d==0?'pa':d==1?'bo':d==2?'db':'tr';
