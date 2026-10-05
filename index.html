@@ -56,7 +56,7 @@ main{padding:16px}
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--navy);display:flex;padding:0 2px max(3px,calc(env(safe-area-inset-bottom,0px) - 14px));border-top:2px solid var(--gold);z-index:5;-webkit-transform:translateZ(0);transform:translateZ(0);will-change:transform;-webkit-backface-visibility:hidden;transition:transform .22s ease}
 nav.hid{-webkit-transform:translate3d(0,100%,0);transform:translate3d(0,100%,0)}
 @media(prefers-reduced-motion:reduce){nav{transition:none}}
-nav button{flex:1;background:none;border:0;color:#b9c6cf;font:800 13px 'Barlow Condensed',sans-serif;letter-spacing:.06em;padding:9px 0;text-transform:uppercase;min-width:0}
+nav button{flex:1;background:none;border:0;color:#b9c6cf;font:800 13px 'Barlow Condensed','Arial Narrow','Roboto Condensed','Helvetica Neue',Arial,sans-serif;letter-spacing:.06em;padding:9px 0;text-transform:uppercase;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:clip}
 nav button.on{color:var(--gold)}
 @media(max-width:420px){nav button{letter-spacing:.02em}}@media(max-width:350px){nav button{font-size:12px;letter-spacing:.01em}}
 #ov{position:fixed;inset:0;background:rgba(5,20,30,.6);display:none;align-items:flex-end;z-index:9}
@@ -389,6 +389,9 @@ body.practice header{top:calc(env(safe-area-inset-top,0px) + 26px)}
 .bsel>span:nth-of-type(1){flex:1;min-width:0;font:800 18px 'Barlow Condensed',sans-serif;letter-spacing:.03em;text-transform:uppercase;line-height:1.1}
 .bsel small{display:block;font:500 12px 'Barlow',sans-serif;color:var(--muted);letter-spacing:0;text-transform:none}
 .bsel .opl{min-width:84px}
+@media(max-width:340px){nav button{font-size:11px;letter-spacing:0}}
+.sy{position:relative}.sy::after{content:'';position:absolute;inset:-14px -8px} /* a larger invisible tap area for the status badge */
+.lk{position:relative}.lk::after{content:'';position:absolute;inset:-9px -6px}
 </style></head><body>
 <header><img src="logo.6751ba0b.webp" alt="Ronnie Bass Classic logo">
 <div id="hd"><span class="lbl" id="lbl"></span><h1><span id="ev"></span></h1></div><span id="sy" class="sy"></span></header>
@@ -403,7 +406,7 @@ body.practice header{top:calc(env(safe-area-inset-top,0px) + 26px)}
 // PRACTICE: a sandbox tournament that lives only on this phone. It uses its own saved copy, never connects to the shared database, and cannot change the real event.
 const PRACTICE=(()=>{try{const s=location.search;if(/[?&]practice=(0|off)(&|$)/.test(s)||/[?&]scorer(=|&|$)/.test(s)){localStorage.removeItem('rbc_practice_on');return false}if(/[?&]practice(=1|=on|=true)?(&|$)/.test(s)){localStorage.setItem('rbc_practice_on','1');return true}return localStorage.getItem('rbc_practice_on')=='1'}catch(e){return false}})();
 const KEY=PRACTICE?'rbc_practice_v1':'rbc_v2',$=s=>document.querySelector(s);
-const BUILD=29; // bump together with CACHE in sw.js on every release; a phone running an older build than the event's is held back from saving (see STALE)
+const BUILD=30; // bump together with CACHE in sw.js on every release; a phone running an older build than the event's is held back from saving (see STALE)
 let UPDREADY=false,STALE=false,DENIED=false,RRDEF=false,PENDM={},FRESH=false,KNOWNB=0,LSET=null,SMSG='',PAIRC=null,PAIRDAY=null,PAIRMSG='';
 const HELD={};
 const VIEWER=(()=>{try{if(PRACTICE)return false;const s=location.search,w=/[?&]watch(=|&|$)/.test(s)||location.hash=='#watch';if(/[?&]scorer(=|&|$)/.test(s))localStorage.removeItem('rbc_watch');else if(w)localStorage.setItem('rbc_watch','1');return !/[?&]scorer(=|&|$)/.test(s)&&(w||localStorage.getItem('rbc_watch')=='1')}catch(e){return false}})(),roBase=()=>VIEWER||SY=='ro'||STALE||!canEdit(),isRO=()=>roBase()||!!(typeof S==='object'&&S&&S.closed);
@@ -500,7 +503,7 @@ m.querySelectorAll('.ov,.sgw').forEach(e=>{if(!e.hasAttribute('tabindex')){e.tab
 function render0(){if(CRXS!==JSON.stringify(S.crsx||{}))applyCrsx();save();const c=calc();
 $('#lbl').textContent=LB[tab=='o'&&MS?MS:tab];$('#ev').textContent=S.event;
 document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==tab));
-$('#main').innerHTML=noticeHtml()+({a:admin,r:rules,s:()=>stand(c),m:()=>LV?liveView():matches(),h:history,l:leaderboardPage,t:players,o:more})[tab]();if(!(tab=='o'&&MS=='pair')){PAIRC=null;PAIRMSG='';PAIRDAY=null}a11yPass();swipeInit();document.body.classList.toggle('live',!!(LV&&tab=='m'));if(LV&&tab=='m')setTimeout(()=>{ctr();lvScroll()},0)}
+$('#main').innerHTML=noticeHtml()+({a:admin,r:rules,s:()=>stand(c),m:()=>LV?liveView():matches(),h:histPage,l:leaderboardPage,t:players,o:more})[tab]();if(!(tab=='o'&&MS=='pair')){PAIRC=null;PAIRMSG='';PAIRDAY=null}a11yPass();swipeInit();document.body.classList.toggle('live',!!(LV&&tab=='m'));if(LV&&tab=='m')setTimeout(()=>{ctr();lvScroll()},0)}
 function go(t){tab=t;LV=null;MS=null;PF=null;render();scrollTo(0,0)}
 function curDay(){for(const d of DAYS){const ms=S.matches.filter(m=>m.d==d);if(ms.length&&!ms.every(m=>mFin(m)))return d}return DAYS[DAYS.length-1]}
 // ---- Live win chances: an estimate of who wins the Ryder Cup, from the points already won, the holes already played and the power ratings ----
@@ -1716,7 +1719,7 @@ function hrData(){const AP=allPts(),names=HN.concat(Object.keys(AP).filter(n=>HN
 function tbl(k,t){const c=HS[k],rows=hrData()[k];
 if(c==0)rows.sort((a,b)=>a[0].localeCompare(b[0]));else if(c>0)rows.sort((a,b)=>c==3?parseFloat(b[3])-parseFloat(a[3]):b[c]-a[c]);
 return `<div class="card"><h2>${t}</h2><table class="tb"><thead><tr>${['Player','Win','Lose','Win %'].map((x,i)=>`<th><button${c==i?' class="on"':''} onclick="hs('${k}',${i})">${x}</button></th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r[0])}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('')}</tbody></table></div>`}
-function history(){return pastEvents()+`<div class="sec" style="margin-top:0">All-Time Records</div>`+teamAll()+tbl('bb','Best Ball')+tbl('mp','Match Play')+`<p class="mu" style="margin:0 2px 14px">Totals of match points won and lost from 2025 through today, updated as 2027 matches finish. Best ball partners each get the full points of their match. Best Ball includes Friday and Saturday; Match Play is Sunday singles.</p>`+slog()}
+function histPage(){return pastEvents()+`<div class="sec" style="margin-top:0">All-Time Records</div>`+teamAll()+tbl('bb','Best Ball')+tbl('mp','Match Play')+`<p class="mu" style="margin:0 2px 14px">Totals of match points won and lost from 2025 through today, updated as 2027 matches finish. Best ball partners each get the full points of their match. Best Ball includes Friday and Saturday; Match Play is Sunday singles.</p>`+slog()}
 const COURSE={Friday:{n:'Plantation Lakes',loc:'Millsboro, DE',p:72,def:'Blue',par:[4,4,4,3,5,4,5,3,4,4,3,4,5,4,3,4,4,5],hcp:[15,3,1,13,5,11,7,17,9,16,4,2,14,6,12,8,18,10],tees:{
 Black:{r:72.2,s:136,y:[320,471,447,216,522,325,510,148,350,320,157,376,546,493,185,320,442,516]},
 Blue:{r:70.1,s:133,y:[302,446,424,193,495,302,481,142,336,287,141,348,510,454,175,293,409,495]},
@@ -1859,7 +1862,7 @@ function pristine(i,val){try{const D=mk().matches[i];return !!D&&val===JSON.stri
 // rr: redraw after a remote update. Batches bursts into one redraw and waits until the user has stopped tapping, so an incoming score never eats a tap.
 try{document.addEventListener&&document.addEventListener('pointerdown',()=>{LASTTAP=Date.now()},true)}catch(e){}
 function rr(){if(RRT)return;RRS=Date.now();RRT=setTimeout(function f(){if(Date.now()-LASTTAP<700&&Date.now()-RRS<3000){RRT=setTimeout(f,250);return}RRT=0;const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.type!='file'&&a.type!='button'){RRDEF=true;return}render()},(tab=='o'&&MS=='pair')?3000:250)}
-function setSy(s){SY=s;const e=$('#sy');if(e){if(!e.dataset.t){e.dataset.t=1;e.setAttribute('role','button');e.tabIndex=0;e.setAttribute('aria-label','Connection status. Tap for details');const go=()=>{CONNSHOW=!CONNSHOW;render();scrollTo(0,0)};e.addEventListener('click',go);e.addEventListener('keydown',ev=>{if(ev.key=='Enter'||ev.key==' '){ev.preventDefault();go()}})}e.textContent=s=='live'?(VIEWER?'\u25cf Watching live':'\u25cf Live'):s=='ro'?'View only':s=='off'?'\u25cf Offline (saved on this phone)':s=='connecting'?'Connecting\u2026':s=='practice'?'Practice':'Local';e.className='sy '+s}}
+function setSy(s){if(s=='live'&&!PRACTICE&&!VIEWER&&DB&&REGS=='denied')s='ro';SY=s;const e=$('#sy');if(e){if(!e.dataset.t){e.dataset.t=1;e.setAttribute('role','button');e.tabIndex=0;e.setAttribute('aria-label','Connection status. Tap for details');const go=()=>{CONNSHOW=!CONNSHOW;render();scrollTo(0,0)};e.addEventListener('click',go);e.addEventListener('keydown',ev=>{if(ev.key=='Enter'||ev.key==' '){ev.preventDefault();go()}})}e.textContent=s=='live'?(VIEWER?'\u25cf Watching live':'\u25cf Live'):s=='ro'?'View only':s=='off'?'\u25cf Offline (saved on this phone)':s=='connecting'?'Connecting\u2026':s=='practice'?'Practice':'Local';e.className='sy '+s}}
 // ---- Field-level document shape: each match doc holds a small "struct" (lineup/format/segment results)
 // plus one score field and one tee field PER PLAYER, each with its own version stamp. Two golfers
 // editing two different players in the same match write to different fields and never collide.
@@ -1957,16 +1960,19 @@ let REGS='pending'; // pending | ok (registered under the locked-down rules) | l
 const FDEL=()=>{try{return firebase.firestore.FieldValue.delete()}catch(e){return undefined}};
 const codeBit=()=>{if(REGS=='legacy')return{code:EVENT_CODE};const d=FDEL();return d===undefined?{}:{code:d}}; // locked-down mode also removes any code left in a record by the old app
 async function dropUnsent(){try{Object.keys(DRT).forEach(k=>{const j=k.indexOf('.');if(j>0){try{revert(k.slice(0,j),k.slice(j+1))}catch(e){}}clean(k)})}catch(e){}}
-async function regDevice(){if(PRACTICE||VIEWER||!DB)return;
-if(!EVENT_CODE){REGS='denied';setCodeOk(false);render();return} // no code entered: nothing to check and nothing to send
-REGS='pending';
-try{const u=firebase.auth().currentUser;if(!u)throw{code:'noauth'};await DB.doc('writers/'+u.uid).set({code:EVENT_CODE,ts:Date.now()});REGS='ok';setCodeOk(true);if(DENIED){DENIED=false;if(SY=='ro')setSy('live')}}
+let REGBUSY=false;
+function stampBuild(){if(KNOWNB<BUILD&&!VIEWER&&!isRO()&&EVENT_CODE&&DB)setTimeout(()=>{if(KNOWNB<BUILD&&!isRO()){KNOWNB=BUILD;DB.doc('meta/main').set({build:BUILD,...codeBit()},{merge:true}).catch(()=>{})}},300+Math.random()*1500)} // the event now needs at least this build (phones opening together take turns instead of all writing)
+async function regDevice(){if(PRACTICE||VIEWER||!DB||REGBUSY)return;
+if(!EVENT_CODE){REGS='denied';setCodeOk(false);if(SY!='off')setSy('ro');render();return} // no code entered: nothing to check and nothing to send
+REGBUSY=true;REGS='pending';
+try{const u=firebase.auth().currentUser;if(!u)throw{code:'noauth'};await DB.doc('writers/'+u.uid).set({code:EVENT_CODE,ts:Date.now()});REGS='ok';setCodeOk(true);if(DENIED)DENIED=false;if(SY!='off')setSy(DIAG.snap.match||DIAG.snap.meta?'live':'connecting')}
 catch(e){DIAG.reg=(e&&(e.code||e.message))||'error';const tr=x=>x&&(x.code=='unavailable'||x.code=='noauth'||x.code=='deadline-exceeded');
  if(tr(e))REGS='pending';
- else if(STALE)REGS='pending';
- else{try{await DB.doc('meta/main').set({build:Math.max(KNOWNB,BUILD),code:EVENT_CODE},{merge:true});REGS='legacy';setCodeOk(true);if(DENIED){DENIED=false;if(SY=='ro')setSy('live')}} // the database is on the old rules: the same code check, done by a harmless write
+ else if(STALE||!(DIAG.snap.meta||DIAG.snap.match))REGS='pending';
+ else{try{await DB.doc('meta/main').set({build:Math.max(KNOWNB,BUILD),code:EVENT_CODE},{merge:true});REGS='legacy';setCodeOk(true);if(DENIED)DENIED=false;if(SY!='off')setSy(DIAG.snap.match||DIAG.snap.meta?'live':'connecting')} // the database is on the old rules: the same code check, done by a harmless write
   catch(e2){if(tr(e2))REGS='pending';else{REGS='denied';setCodeOk(false);await dropUnsent();setSy('ro');DENIED=true}}}}
-if(REGS=='pending')setTimeout(()=>{if(REGS=='pending')regDevice()},3000);
+REGBUSY=false;if(REGS=='pending')setTimeout(()=>{if(REGS=='pending')regDevice()},1500);
+if(REGS=='ok'||REGS=='legacy')stampBuild();
 render();pa()}
 function ensureCode(){if(VIEWER){EVENT_CODE='';return ''}try{EVENT_CODE=localStorage.getItem('rbc_code')||''}catch(e){}loadCodeOk();return EVENT_CODE}
 function changeCode(){const v=(prompt('Enter the access code (ask the commissioner). Without the right code this phone can only watch.',EVENT_CODE||'')||'').trim();
@@ -1998,11 +2004,11 @@ if(!seen[id]&&LP[key]===undefined)LP[key]=null;
 if(data[field]===undefined&&!DRT[key]&&LBASE[key]!==undefined&&LBASE[key]!=='null'&&fval(i,field)===LBASE[key]){clearStale(i,field);c=true} // the database has nothing here and this phone's copy is just old local data: drop it instead of pushing it into the live event
 })})}
 if(c)rr();else if(!sn.metadata.fromCache)pa()},bad('match',subMatch));
-const subMeta=()=>DB.doc('meta/main').onSnapshot(d=>{rt.meta=0;DIAG.snap.meta=Date.now();delete DIAG.err.meta;setSy('live');
+const subMeta=()=>DB.doc('meta/main').onSnapshot(d=>{rt.meta=0;DIAG.snap.meta=Date.now();delete DIAG.err.meta;setSy('live');if(REGS=='pending'&&EVENT_CODE)setTimeout(regDevice,0);
 const dd=d.exists?d.data():null,b=dd?+(dd.build||0):0;
 if(b>BUILD&&!STALE){STALE=true;render()}else if(STALE&&b<=BUILD){STALE=false;render()}
 KNOWNB=Math.max(KNOWNB,b);
-if(b<BUILD&&!VIEWER&&!isRO()&&!d.metadata.fromCache&&EVENT_CODE)setTimeout(()=>{if(KNOWNB<BUILD&&!isRO()){KNOWNB=BUILD;DB.doc('meta/main').set({build:BUILD,...codeBit()},{merge:true}).catch(()=>{})}},300+Math.random()*1500); // the event now needs at least this build (phones opening together take turns instead of all writing)
+if(b<BUILD&&!d.metadata.fromCache)stampBuild();
 if(!dd||dd.j===undefined){if(f2&&!d.metadata.fromCache){f2=0;if(LP['meta.meta']===undefined)LP['meta.meta']=null}return}
 const c=apField('meta','meta',dd.j,dd.v);if(!d.metadata.fromCache)f2=0;if(c)rr();else if(!d.metadata.fromCache)pa()},bad('meta',subMeta));
 const subSet=()=>DB.doc('meta/settings').onSnapshot(d=>{rt.set=0;const dd=d.exists?d.data():null;
@@ -2011,7 +2017,7 @@ const c=apField('settings','settings',dd.j,dd.v);if(!d.metadata.fromCache)f3=0;i
 subMatch();subMeta();subSet();
 DB.collection('playerphotos').onSnapshot(sn=>{let ch=false;sn.docs.forEach(d=>{const data=d.data(),im=data&&/^[01]_[0-6]$/.test(d.id)?SAFEIMG(data.img):'';if(im&&PPICS[d.id]!==im){PPICS[d.id]=im;ch=true}});if(ch){savePPics();rr()}},()=>{});
 pa()}
-function more(){if(MS)return `<button class="add" style="margin-bottom:12px" onclick="MS=null;render()">← More</button>`+(MS=='h'?history():MS=='r'?rules():MS=='th'?themePage():MS=='i'?installPage():MS=='ph'?photosPage():MS=='pw'?rbPage():MS=='pwd'?rbDetail(PWD.ti,PWD.pi):MS=='pair'?rbPairPage():MS=='lb'?leaderboardPage():MS=='pay'?payoutsPage():MS=='bet'?betPage():MS=='rc'?recapPage():MS=='arc'?archivePage(ARCY):VIEWER?'':(canEdit()?admin():accessPage()));
+function more(){if(MS)return `<button class="add" style="margin-bottom:12px" onclick="MS=null;render()">← More</button>`+(MS=='h'?histPage():MS=='r'?rules():MS=='th'?themePage():MS=='i'?installPage():MS=='ph'?photosPage():MS=='pw'?rbPage():MS=='pwd'?rbDetail(PWD.ti,PWD.pi):MS=='pair'?rbPairPage():MS=='lb'?leaderboardPage():MS=='pay'?payoutsPage():MS=='bet'?betPage():MS=='rc'?recapPage():MS=='arc'?archivePage(ARCY):VIEWER?'':(canEdit()?admin():accessPage()));
 return `<div class="card" style="padding:4px 14px">`+[['pw','Power rankings','All 14 players ranked 1 to 14'],['h','History','All-time records and the scoring log'],['pay','Payouts','Who wins the side-bet pots'],['bet','Betting','Live odds on the weekend'],['r','Rules','Format, scoring and awards'],['ph','Photo album','Trip photos, one album per year'],['th','Appearance','Light, dark or match your device'],['i','Install app','Add to your home screen'],['a','Admin','Event name, access code, Nassau points and reset']].filter(a=>!(VIEWER&&a[0]=='a')).map(a=>a[0]=='a'&&!VIEWER&&!canEdit()?['a','Access code','Enter the code to score and edit']:a).concat(VIEWER?[['si','Scorer sign-in','Switch this phone to scoring']]:[]).map(([k,t,d])=>`<button class="mi" onclick="${k=='si'?'scorerSignIn()':k=='cc'?'changeCode()':`MS='${k}';${k=='ph'?'pSub(PY);':''}render();scrollTo(0,0)`}"><span><b>${t}</b><small>${d}</small></span><i>›</i></button>`).join('')+`</div>`}
 let INSTALLP=null,INSTALLED=false;
 try{
