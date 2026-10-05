@@ -426,7 +426,7 @@ th[onclick]{height:44px}.pfw input{min-width:44px;min-height:44px}
 // PRACTICE: a sandbox tournament that lives only on this phone. It uses its own saved copy, never connects to the shared database, and cannot change the real event.
 const PRACTICE=(()=>{try{const s=location.search;if(/[?&]practice=(0|off)(&|$)/.test(s)||/[?&]scorer(=|&|$)/.test(s)){localStorage.removeItem('rbc_practice_on');return false}if(/[?&]practice(=1|=on|=true)?(&|$)/.test(s)){localStorage.setItem('rbc_practice_on','1');return true}return localStorage.getItem('rbc_practice_on')=='1'}catch(e){return false}})();
 const KEY=PRACTICE?'rbc_practice_v1':'rbc_v2',$=s=>document.querySelector(s);
-const BUILD=32; // bump together with CACHE in sw.js on every release; a phone running an older build than the event's is held back from saving (see STALE)
+const BUILD=33; // bump together with CACHE in sw.js on every release; a phone running an older build than the event's is held back from saving (see STALE)
 let UPDREADY=false,STALE=false,DENIED=false,RRDEF=false,PENDM={},FRESH=false,KNOWNB=0,LSET=null,SMSG='',PAIRC=null,PAIRDAY=null,PAIRMSG='';
 const HELD={};
 const VIEWER=(()=>{try{if(PRACTICE)return false;const s=location.search,w=/[?&]watch(=|&|$)/.test(s)||location.hash=='#watch';if(/[?&]scorer(=|&|$)/.test(s))localStorage.removeItem('rbc_watch');else if(w)localStorage.setItem('rbc_watch','1');return !/[?&]scorer(=|&|$)/.test(s)&&(w||localStorage.getItem('rbc_watch')=='1')}catch(e){return false}})(),roBase=()=>VIEWER||SY=='ro'||STALE||!canEdit(),isRO=()=>roBase()||!!(typeof S==='object'&&S&&S.closed);
@@ -1108,18 +1108,20 @@ if(L.length!=G.length)return null;
 const fam=rbFamiliarity(day);let best=null;
 rbPermutations(L.length).forEach(perm=>{let obj=0,rep=0;perm.forEach((gi,li)=>{const d=L[li].rbpr-G[gi].rbpr;obj+=d*d;rep+=fam.get(L[li].n,G[gi].n)*500});
   const score=obj+rep;if(!best||score<best.score)best={perm,score}});
-const matches=best.perm.map((gi,li)=>[[L[li]],[G[gi]]]);
-return{matches,diffs:matches.map(m=>Math.abs(m[0][0].rbpr-m[1][0].rbpr))}}
+const raw=best.perm.map((gi,li)=>[[L[li]],[G[gi]]]),gr=rbSundayGroups(raw),matches=gr.order.map(i=>raw[i]);let k=0;const groups=gr.groups.map(g=>g.map(()=>k++));
+return{matches,groups,groupCost:gr.cost,diffs:matches.map(m=>Math.abs(m[0][0].rbpr-m[1][0].rbpr))}}
 
 // Sunday physical playing groups (4,4,3,3), independent of who's actually paired 1v1 for scoring -
 // maximizes new company: greedy, minimizes total familiarity (this weekend weighted heavy) within each group.
-function rbSundayGroups(matches){const fam=rbFamiliarity(),all=[];matches.forEach(m=>{all.push(m[0][0]);all.push(m[1][0])});
-const order=all.slice().sort((a,b)=>{let sa=0,sb=0;all.forEach(x=>{sa+=fam.get(a.n,x.n);sb+=fam.get(b.n,x.n)});return sb-sa});
-const sizes=[4,4,3,3],groups=sizes.map(()=>[]);
-order.forEach(p=>{let bestI=-1,bestAdd=Infinity;
-  groups.forEach((g,i)=>{if(g.length>=sizes[i])return;let add=0;g.forEach(q=>add+=fam.get(p.n,q.n));if(add<bestAdd){bestAdd=add;bestI=i}});
-  if(bestI>=0)groups[bestI].push(p)});
-return groups}
+function rbSundayGroups(matches){ // whole matches only: foursomes of two matches (4 players) and, when the number of matches is odd, one match on its own (a twosome). Picks the grouping where the players in each group have shared the course the least.
+const fam=rbFamiliarity(),n=matches.length,ppl=i=>[matches[i][0][0],matches[i][1][0]];
+const cost=ix=>{const ps=[].concat(...ix.map(ppl));let s=0;for(let a=0;a<ps.length;a++)for(let b=a+1;b<ps.length;b++)s+=fam.get(ps[a].n,ps[b].n);return s};
+let best=null;const rec=(rest,gs,c)=>{if(!rest.length){if(!best||c<best.c)best={c,gs};return}const a=rest[0];for(let j=1;j<rest.length;j++){const g=[a,rest[j]];rec(rest.filter((_,k)=>k!=0&&k!=j),gs.concat([g]),c+cost(g))}};
+const idx=[...Array(n).keys()];
+if(n%2)idx.forEach(s=>rec(idx.filter(i=>i!==s),[[s]],cost([s])));else rec(idx,[],0);
+if(!best)return{groups:idx.map(i=>[i]),order:idx,cost:0};
+const two=best.gs.filter(g=>g.length==1),four=best.gs.filter(g=>g.length==2).sort((x,y)=>Math.min(...x)-Math.min(...y)),groups=four.concat(two);
+return{groups,order:[].concat(...groups),cost:best.c}}
 
 function rbPairPage(){const res=rbAll(),day=PAIRDAY||curDay();
 let h=`<button class="add" style="margin-bottom:12px" onclick="MS='pw';render();scrollTo(0,0)">\u2190 Power Rankings</button>`;
@@ -1130,12 +1132,12 @@ if(!VIEWER)h+=`<div class="card" style="padding:12px 14px"><button class="op go"
 sug.matches.forEach((m,i)=>{const sum=g=>g.reduce((s,p)=>s+p.rbpr,0),a=sum(m[0]),b=sum(m[1]);
 const side=(arr,right)=>`<div style="display:flex;flex-direction:column;align-items:${right?'flex-end':'flex-start'};gap:4px">`+arr.map(p=>`<span style="display:inline-flex;align-items:center;gap:6px${right?';flex-direction:row-reverse':''}">${avatar(p.ti,p.pi,p.nm,34)}<b>${esc(p.nm)}</b><small style="color:var(--muted)">${p.noData?'est. ':''}${p.rbpr.toFixed(1)}</small></span>`).join('')+`</div>`;
 const mid=`<div style="text-align:center;font-size:12px;color:var(--muted)">Combined<br><b style="font-size:18px;color:var(--ink)">${a.toFixed(1)}</b><br>vs<br><b style="font-size:18px;color:var(--ink)">${b.toFixed(1)}</b><br>Projected diff ${sug.diffs[i].toFixed(1)}</div>`;
-h+=`<div class="card"><h2>Match ${i+1}${isSun?'':' \u00b7 '+m[0].length+'v'+m[0].length}</h2><div style="display:flex;justify-content:space-between;align-items:center;gap:10px">${side(m[0],false)}${mid}${side(m[1],true)}</div>
+h+=`<div class="card"><h2>Match ${i+1}${isSun?'':' \u00b7 '+m[0].length+'v'+m[0].length}${isSun&&sug.groups?' \u00b7 group '+(sug.groups.findIndex(g=>g.includes(i))+1):''}</h2><div style="display:flex;justify-content:space-between;align-items:center;gap:10px">${side(m[0],false)}${mid}${side(m[1],true)}</div>
 <button class="op go" style="width:100%;margin-top:10px" onclick="rbApplyPair(${i},'${day}')">Apply this match</button></div>`});
 if(!isSun&&sug.trioRepeat)h+=`<p class="mu" style="margin:0 2px 12px">Heads up: this lineup could not fully avoid reusing someone from an earlier 3v3 group this weekend \u2014 there wasn't a workable combination that kept everyone fresh.</p>`;
-if(isSun){const groups=rbSundayGroups(sug.matches);
-h+=`<div class="card"><h2>Suggested playing groups</h2><p class="mu" style="margin:0 0 8px">For pace of play \u2014 2 foursomes and 2 threesomes, mixed for variety. Your actual 1v1 opponent may be teeing off in a different group; that's on purpose, so you spend the round with people you haven't played with as much this weekend.</p>`+
-  groups.map((g,i)=>`<div class="sec" style="margin:10px 2px 4px;font-size:13px">Group ${i+1} \u00b7 ${g.length}some</div><div style="display:flex;flex-wrap:wrap;gap:10px">`+g.map(p=>`<span style="display:inline-flex;align-items:center;gap:6px">${avatar(p.ti,p.pi,p.nm,32)}${esc(p.nm)}</span>`).join('')+`</div>`).join('')+`</div>`}
+if(isSun){const groups=sug.groups||[];
+h+=`<div class="card"><h2>Suggested playing groups</h2><p class="mu" style="margin:0 0 8px">Every match is played inside its own group: ${groups.filter(g=>g.length==2).length} foursome${groups.filter(g=>g.length==2).length==1?'':'s'} (two matches each)${groups.some(g=>g.length==1)?' and one match on its own':''}. The matches are grouped so the players in each group have shared the course the least this weekend.</p>`+
+  groups.map((g,gi)=>`<div class="sec" style="margin:10px 2px 4px;font-size:13px">Group ${gi+1} \u00b7 ${g.length==2?'foursome':'twosome'}${TEETD.Sunday&&TEETD.Sunday[gi]?' \u00b7 '+TEETD.Sunday[gi]:''}</div>`+g.map(i=>{const m=sug.matches[i];return `<div style="display:flex;align-items:center;gap:8px;margin:4px 0;flex-wrap:wrap"><b style="min-width:62px">Match ${i+1}</b><span style="display:inline-flex;align-items:center;gap:6px">${avatar(m[0][0].ti,m[0][0].pi,m[0][0].nm,32)}${esc(m[0][0].nm)}</span><span class="mu">v</span><span style="display:inline-flex;align-items:center;gap:6px">${avatar(m[1][0].ti,m[1][0].pi,m[1][0].nm,32)}${esc(m[1][0].nm)}</span></div>`}).join('')).join('')+`</div>`}
 return h}
 function rbSug(day){return day=='Sunday'?rbSuggestSingles(rbAll(),day):rbSuggestBestBall(rbAll(),day)}
 function rbGuard(day,idxs){const targets=S.matches.filter(x=>x.d==day),o=S.sc[day]||{};for(const i of idxs){const m=targets[i];if(!m)continue;
@@ -1445,12 +1447,14 @@ S.matches.forEach(m=>m.s=m.s.map(()=>null));S.awards={};S.sc={};lg('All scores r
 const TEET={Friday:[['1:10 PM'],['1:20 PM'],['1:30 PM','1:40 PM']],Saturday:[['10:10 AM'],['10:20 AM'],['10:30 AM','10:40 AM']]};
 const TEETD={Sunday:['8:30 AM','8:40 AM','8:50 AM','9:00 AM']}; // Sunday: tee times for the four playing groups, shown once for the day
 let MDAY=null,MOPEN={},LVCT=0;
+function sunGroup(i,n){const pairs=n-(n%2);const g=i<pairs?Math.floor(i/2):Math.floor(n/2);const partner=i<pairs?(i%2==0?i+1:i-1):null;return{g,partner}}
+function sunGroupLine(m,mi){if(m.d!='Sunday')return '';const ms=S.matches.filter(x=>x.d=='Sunday'),i=ms.indexOf(m),{g,partner}=sunGroup(i,ms.length),tt=TEETD.Sunday&&TEETD.Sunday[g];return `<p class="mu" style="margin:-2px 0 6px;font-size:14px">Group ${g+1}${tt?' \u00b7 '+tt:''} \u00b7 ${partner!=null?'plays with match '+(partner+1):'plays on its own'}</p>`}
 function mday(d){MDAY=d;render();scrollTo(0,0)}
 function mtog(mi){MOPEN[mi]=!MOPEN[mi];render()}
 function dayPts(d){let a=0,b=0;S.matches.forEach(m=>{if(m.d!=d)return;m.s.forEach((v,k)=>{if(!v)return;const p=m.pv[k];if(v.w=='H'){a+=p/2;b+=p/2}else if(v.w=='A')a+=p;else b+=p})});return[a,b]}
 function matchCardHtml(m,mi){
 const lt=i=>m.l[i].length?`<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:${i?'flex-end':'flex-start'}">${m.l[i].map(pi=>`<span title="${esc(S.teams[i].p[pi])}">${avatar(i,pi,S.teams[i].p[pi],44)}</span>`).join('')}</div>`:`<span class="mu" style="font-size:13px">Players not set</span>`;
-return `<div class="card"><h2>${lab(mi)}: ${esc(m.f)} ${m.n}v${m.n}</h2>${(()=>{const tt=(TEET[m.d]||[])[S.matches.filter((x,i)=>i<=mi&&x.d==m.d).length-1];return tt?`<p class="mu" style="margin:-2px 0 6px;font-size:14px">Tee time${tt.length>1?'s':''} ${tt.join(' & ')}</p>`:''})()}<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:4px 0 8px">${lt(0)}${lt(1)}</div>${rivalCard(m)}${thr(m)}`+
+return `<div class="card"><h2>${lab(mi)}: ${esc(m.f)} ${m.n}v${m.n}</h2>${sunGroupLine(m,mi)}${(()=>{const tt=(TEET[m.d]||[])[S.matches.filter((x,i)=>i<=mi&&x.d==m.d).length-1];return tt?`<p class="mu" style="margin:-2px 0 6px;font-size:14px">Tee time${tt.length>1?'s':''} ${tt.join(' & ')}</p>`:''})()}<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:4px 0 8px">${lt(0)}${lt(1)}</div>${rivalCard(m)}${thr(m)}`+
 m.s.map((v,si)=>{const w=v?v.w:'',ti=w=='B'?1:0;
 const r=!v?'Not played':w=='H'?'Halved':esc(S.teams[ti].n);
 const bg=!v?'transparent':w=='H'?'linear-gradient(135deg,var(--red) 50%,var(--teal) 50%)':`var(--${V(ti)})`;
@@ -1462,7 +1466,7 @@ const chips=`<div class="dchips" role="tablist" aria-label="Day">${days.map(d=>{
 return chips+[sel].map(d=>{const ms=S.matches.map((m,mi)=>[m,mi]).filter(x=>x[0].d==d);const[a,b]=dayPts(d);
 const picker=d=='Sunday'?`<div class="card" style="padding:10px 14px"><label class="lbl" style="color:var(--muted);margin-bottom:6px" for="sc">Sunday course</label><select class="in" id="sc" onchange="setCourse(this.value)"><option value=""${S.crs.Sunday?'':' selected'}>Not yet assigned</option>${Object.keys(SUNCOURSES).map(k=>`<option value="${k}"${S.crs.Sunday==k?' selected':''}>${k}</option>`).join('')}</select></div>`:'';
 const nFin=ms.filter(([m])=>mFin(m)).length;
-return `<div class="sec">${d}: ${a} to ${b}</div>${COURSE[d]?`<p class="mu" style="margin:-4px 2px 10px">${COURSE[d].n}, ${COURSE[d].loc}</p>`:''}${TEETD[d]?`<p class="mu" style="margin:-4px 2px 10px">Tee times ${TEETD[d].join(' \u00b7 ')}</p>`:''}${picker}${nFin?`<p class="mu" style="margin:0 2px 10px;font-size:13px">${nFin} finished match${nFin==1?'':'es'} shown as one line. Tap one to open it.</p>`:''}`+ms.map(([m,mi])=>mFin(m)?(matchRowHtml(m,mi,!!MOPEN[mi])+(MOPEN[mi]?`<div class="mfull">${matchCardHtml(m,mi)}</div>`:'')):matchCardHtml(m,mi)).join('')+dayAwardsBlock(d)}).join('')}
+return `<div class="sec">${d}: ${a} to ${b}</div>${COURSE[d]?`<p class="mu" style="margin:-4px 2px 10px">${COURSE[d].n}, ${COURSE[d].loc}</p>`:''}${TEETD[d]?`<p class="mu" style="margin:-4px 2px 10px">${(()=>{const n=S.matches.filter(x=>x.d==d).length;return TEETD[d].map((tm,g)=>{const a=g*2+1,b=Math.min(g*2+2,n);return a>n?'':tm+' \u00b7 '+(a==b?'match '+a+' on its own':'matches '+a+' and '+b)}).filter(Boolean).join(' \u00a0|\u00a0 ')})()}</p>`:''}${picker}${nFin?`<p class="mu" style="margin:0 2px 10px;font-size:13px">${nFin} finished match${nFin==1?'':'es'} shown as one line. Tap one to open it.</p>`:''}`+ms.map(([m,mi])=>mFin(m)?(matchRowHtml(m,mi,!!MOPEN[mi])+(MOPEN[mi]?`<div class="mfull">${matchCardHtml(m,mi)}</div>`:'')):matchCardHtml(m,mi)).join('')+dayAwardsBlock(d)}).join('')}
 function slog(){if(!S.log.length)return `<div class="card"><h2>Scoring log</h2><p class="mu" style="margin:0">Nothing scored yet. Points and awards you record show up here, newest first.</p></div>`;
 return `<div class="card"><h2>Scoring log</h2>`+S.log.map(e=>{const d=new Date(e.ts);return `<div class="hi">${esc(e.m)}<small>${d.toLocaleDateString([],{month:'short',day:'numeric'})}, ${d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</small></div>`}).join('')+'</div>'}
 function rules(){const aw=(n,d)=>`<p style="margin:0 0 10px"><b>${n}</b> \u2014 ${d}</p>`;
