@@ -1451,7 +1451,6 @@ function sunGroup(i,n){const pairs=n-(n%2);const g=i<pairs?Math.floor(i/2):Math.
 function sunGroupLine(m,mi){if(m.d!='Sunday')return '';const ms=S.matches.filter(x=>x.d=='Sunday'),i=ms.indexOf(m),{g,partner}=sunGroup(i,ms.length),tt=TEETD.Sunday&&TEETD.Sunday[g];return `<p class="mu" style="margin:-2px 0 6px;font-size:14px">Group ${g+1}${tt?' \u00b7 '+tt:''} \u00b7 ${partner!=null?'plays with match '+(partner+1):'plays on its own'}</p>`}
 function mday(d){MDAY=d;render();scrollTo(0,0)}
 function mtog(mi){MOPEN[mi]=!MOPEN[mi];render()}
-function dayPts(d){let a=0,b=0;S.matches.forEach(m=>{if(m.d!=d)return;m.s.forEach((v,k)=>{if(!v)return;const p=m.pv[k];if(v.w=='H'){a+=p/2;b+=p/2}else if(v.w=='A')a+=p;else b+=p})});return[a,b]}
 function matchCardHtml(m,mi){
 const lt=i=>m.l[i].length?`<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:${i?'flex-end':'flex-start'}">${m.l[i].map(pi=>`<span title="${esc(S.teams[i].p[pi])}">${avatar(i,pi,S.teams[i].p[pi],44)}</span>`).join('')}</div>`:`<span class="mu" style="font-size:13px">Players not set</span>`;
 return `<div class="card"><h2>${lab(mi)}: ${esc(m.f)} ${m.n}v${m.n}</h2>${sunGroupLine(m,mi)}${(()=>{const tt=(TEET[m.d]||[])[S.matches.filter((x,i)=>i<=mi&&x.d==m.d).length-1];return tt?`<p class="mu" style="margin:-2px 0 6px;font-size:14px">Tee time${tt.length>1?'s':''} ${tt.join(' & ')}</p>`:''})()}<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:4px 0 8px">${lt(0)}${lt(1)}</div>${rivalCard(m)}${thr(m)}`+
@@ -2022,6 +2021,7 @@ function changeCode(){const v=(prompt('Enter the access code (ask the commission
 EVENT_CODE=v;DENIED=false;setCodeOk(false);try{localStorage.setItem('rbc_code',v)}catch(e){}setSy(DB?'connecting':'local');render();regDevice()}
 async function initDb(){
 if(PRACTICE){setSy('practice');return}
+if(!VIEWER){try{EVENT_CODE=localStorage.getItem('rbc_code')||''}catch(e){}loadCodeOk()} // a phone whose code was accepted earlier can keep scoring on its own even if the database library never loads
 try{
   if(typeof firebase==='undefined')throw new Error('Firebase SDK not loaded');
   if(FIREBASE_CONFIG.apiKey.indexOf('__')===0)throw new Error('Firebase not configured yet');
