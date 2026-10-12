@@ -496,7 +496,7 @@ function connVerdict(){if(PRACTICE)return['Practice mode: nothing is sent to the
 if(!DB)return[DIAG.init&&/SDK/.test(DIAG.init)?'The database library did not load, so this phone cannot connect. Check the internet connection, then reload. Scores you enter are saved on this phone.':'This phone is working on its own (not connected to the database). Scores are saved here. Check the internet connection and reload.','bad'];
 if(STALE)return['The event needs a newer version of the app. Tap Update (or reload) to get it. This phone cannot save until you do.','bad'];
 if(VIEWER)return['This phone is a watch-only phone. It shows live scores but never sends anything.','ok'];
-if(NOCODE())return[EVENT_CODE?(REGS=='pending'?'Checking the access code with the database. Until it is accepted this phone can only look.':'The access code on this phone was not accepted, so it can only look. Enter the current code (More, Access code). If every phone is refused, the code may not have been set in Firebase (config, access).'):'No access code has been entered on this phone, so it can only look. Enter the code to score or edit.','bad'];
+if(NOCODE())return[EVENT_CODE?(REGS=='pending'?'Checking the access code with the database. Until it is accepted this phone can only look.':'The access code on this phone was not accepted (the database said: '+(DIAG.reg2||DIAG.reg||'refused')+', '+EVENT_CODE.length+' characters typed), so it can only look. Enter the current code in the box. If every phone is refused, the code may not have been set in Firebase (config, access, field code).'):'No access code has been entered on this phone, so it can only look. Enter the code to score or edit.','bad'];
 if(SY=='ro')return[(DENIED?'The database refused what this phone tried to save. That means the access code on this phone is wrong or out of date. Open More, Admin and enter the current access code. ':'This phone is view only. ')+'Scores are shown but nothing is saved until the code is accepted.','bad'];
 if(SY=='off')return['No internet connection right now. Everything you enter is saved on this phone and is sent as soon as the signal returns.','warn'];
 if(DIAG.auth!=='ok')return['Signing in to the database'+(DIAG.auth?' ('+DIAG.auth+')':'')+'. This phone keeps trying by itself. If it stays here, move to better signal. Scores you enter are saved on this phone meanwhile.','warn'];
@@ -508,7 +508,11 @@ return `<div class="card" style="border-color:${c};border-width:2px"><h2>Connect
 ${PRACTICE?'':`<div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>App build</span><b>${BUILD}</b></div><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Event requires build</span><b>${KNOWNB||'?'}</b></div><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Sign-in</span><b>${DIAG.auth||(DB?'starting':'no database')}</b></div><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Scores last received</span><b>${connAge(DIAG.snap.match)}</b></div><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Saving</span><b>${REGS=='ok'?'registered':REGS=='legacy'?'old method':'waiting'}</b></div><div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Waiting to send</span><b>${Object.keys(DRT).length} change${Object.keys(DRT).length==1?'':'s'}</b></div>${DIAG.wr?`<div class="hi" style="display:flex;justify-content:space-between;gap:8px"><span>Last save problem</span><b>${esc(DIAG.wr.code)} ${esc(connAge(DIAG.wr.t))}</b></div>`:''}`}
 <div style="display:flex;gap:8px;margin-top:10px"><button class="op go" style="flex:1;margin:0" onclick="HOLD=0;RT=0;regDevice();location.reload()">Reconnect</button>${force?'':`<button class="op" style="flex:1;margin:0;text-align:center" onclick="CONNSHOW=false;render()">Close</button>`}</div></div>`}
 const NOCODE=()=>!PRACTICE&&!VIEWER&&!canEdit()&&!STALE;
-function accessCard(){const w=REGS=='pending'&&EVENT_CODE;return `<div class="card" style="border-color:var(--red);padding:12px 14px"><b>${w?'Checking your access code\u2026':'View only'}</b><p class="mu" style="margin:4px 0 10px">${w?'You can look around while the code is checked. Nothing can be changed until it is accepted.':'This phone can look at everything but cannot change anything (scores, teams, lineups, settings, photos) until the event access code is entered and accepted.'}</p>${w?'':'<button class="op go" style="margin:0" onclick="changeCode()">Enter access code</button>'}</div>`}
+function accHint(){if(!EVENT_CODE)return '';if(REGS=='pending')return DIAG.reg=='timeout'?'The database has not answered after 10 seconds. The phone keeps trying; check the connection (an ad or privacy blocker can stop it).':DIAG.reg=='noauth'?'Still signing in to the database. The phone keeps trying.':'Checking the code with the database\u2026';
+if(REGS=='denied')return 'Not accepted (the database said: '+(DIAG.reg2||DIAG.reg||'refused')+'). The code you typed has '+EVENT_CODE.length+' characters. Check it exactly as it is in Firebase (capital letters count), that Firestore has the document config / access with a field named code, and that the field is type string (text) even if the code is only digits.';return ''}
+function accIn(v){ACCIN=v}
+async function unlock(){const v=String(ACCIN||'').replace(/[\u200b-\u200d\ufeff\u00a0]/g,' ').trim();if(!v)return;EVENT_CODE=v;DENIED=false;setCodeOk(false);try{localStorage.setItem('rbc_code',v)}catch(e){}if(DB)REGS='pending';DIAG.reg='';render();await regDevice(true);render()}
+function accessCard(){const w=REGS=='pending'&&EVENT_CODE,h=accHint();return `<div class="card" style="border-color:var(--red);padding:12px 14px"><b>${w?'Checking your access code\u2026':'View only'}</b><p class="mu" style="margin:4px 0 10px">${w?'You can look around while the code is checked. Nothing can be changed until it is accepted.':'This phone can look at everything but cannot change anything (scores, teams, lineups, settings, photos) until the event access code is entered and accepted.'}</p><div style="display:flex;gap:8px"><input id="acin" class="in" style="flex:1;min-width:0" type="text" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="Access code" aria-label="Access code" value="${esc(ACCIN)}" oninput="accIn(this.value)" onkeydown="if(event.key==='Enter')unlock()"><button class="op go" style="margin:0;flex:none;width:96px;text-align:center" onclick="unlock()">Unlock</button></div>${h?`<p class="mu" role="status" style="margin:8px 0 0;font-size:13px">${esc(h)}</p>`:''}</div>`}
 function accessPage(){return accessCard()+connCard(true)}
 function noticeHtml(){let h='';if(NOCODE())h+=accessCard();if(CONNSHOW)h+=connCard();
 if(UPDREADY&&!STALE)h+=`<div class="card" style="border-color:var(--gold);padding:12px 14px"><b>A new version is ready</b><p class="mu" style="margin:4px 0 10px">Reload to get the latest fixes. Nothing you entered is lost.</p><button class="op go" style="margin:0" onclick="appUpdate()">Reload now</button></div>`;
@@ -2032,24 +2036,40 @@ let EVENT_CODE=null;
 const DIAG={auth:'',init:'',snap:{},err:{},wr:null,t0:Date.now()};
 let REGS='pending'; // pending | ok (registered under the locked-down rules) | legacy (old rules, or this phone's code was not accepted)
 const FDEL=()=>{try{return firebase.firestore.FieldValue.delete()}catch(e){return undefined}};
-const codeBit=()=>{if(REGS=='legacy')return{code:EVENT_CODE};const d=FDEL();return d===undefined?{}:{code:d}}; // locked-down mode also removes any code left in a record by the old app
+let CODE_NUM=false,ACCIN='',REGAGAIN=false;
+const withT=(p,ms)=>Promise.race([p,new Promise((_,rj)=>setTimeout(()=>rj({code:'timeout'}),ms))]); // the database never says no to a write it cannot reach, it just waits: do not wait forever
+const codeVal=()=>CODE_NUM&&/^\d+$/.test(EVENT_CODE)?Number(EVENT_CODE):EVENT_CODE;
+const codeBit=()=>{if(REGS=='legacy')return{code:codeVal()};const d=FDEL();return d===undefined?{}:{code:d}}; // locked-down mode also removes any code left in a record by the old app
 async function dropUnsent(){try{Object.keys(DRT).forEach(k=>{const j=k.indexOf('.');if(j>0){try{revert(k.slice(0,j),k.slice(j+1))}catch(e){}}clean(k)})}catch(e){}}
 let REGBUSY=false;
 function stampBuild(){if(KNOWNB<BUILD&&!VIEWER&&!isRO()&&EVENT_CODE&&DB)setTimeout(()=>{if(KNOWNB<BUILD&&!isRO()){KNOWNB=BUILD;DB.doc('meta/main').set({build:BUILD,...codeBit()},{merge:true}).catch(()=>{})}},300+Math.random()*1500)} // the event now needs at least this build (phones opening together take turns instead of all writing)
-async function regDevice(){if(PRACTICE||VIEWER||!DB||REGBUSY)return;
+async function regDevice(force){if(PRACTICE||VIEWER||!DB)return;
+if(REGBUSY){if(force===true)REGAGAIN=true;return} // only an explicit Unlock queues a second check; the app's own triggers never do (a check writes a record, which would trigger another check)
 if(!EVENT_CODE){REGS='denied';setCodeOk(false);if(SY!='off')setSy('ro');render();return} // no code entered: nothing to check and nothing to send
-REGBUSY=true;REGS='pending';
-try{const u=firebase.auth().currentUser;if(!u)throw{code:'noauth'};await DB.doc('writers/'+u.uid).set({code:EVENT_CODE,ts:Date.now()});REGS='ok';setCodeOk(true);if(DENIED)DENIED=false;if(SY!='off')setSy(DIAG.snap.match||DIAG.snap.meta?'live':'connecting')}
-catch(e){DIAG.reg=(e&&(e.code||e.message))||'error';const tr=x=>x&&(x.code=='unavailable'||x.code=='noauth'||x.code=='deadline-exceeded');
- if(tr(e))REGS='pending';
- else if(STALE||!(DIAG.snap.meta||DIAG.snap.match))REGS='pending';
- else{try{await DB.doc('meta/main').set({build:Math.max(KNOWNB,BUILD),code:EVENT_CODE},{merge:true});REGS='legacy';setCodeOk(true);if(DENIED)DENIED=false;if(SY!='off')setSy(DIAG.snap.match||DIAG.snap.meta?'live':'connecting')} // the database is on the old rules: the same code check, done by a harmless write
-  catch(e2){if(tr(e2))REGS='pending';else{REGS='denied';setCodeOk(false);await dropUnsent();setSy('ro');DENIED=true}}}}
-REGBUSY=false;if(REGS=='pending')setTimeout(()=>{if(REGS=='pending')regDevice()},1500);
+REGBUSY=true;if(force===true||(REGS!='ok'&&REGS!='legacy'))REGS='pending';DIAG.regT=Date.now();DIAG.reg='';DIAG.reg2='';
+const tr=x=>x&&(x.code=='unavailable'||x.code=='noauth'||x.code=='deadline-exceeded'||x.code=='timeout'),att=async f=>{try{await f();return null}catch(x){return x||{code:'error'}}},num=/^\d+$/.test(EVENT_CODE);let res=null;
+try{const u=firebase.auth().currentUser;
+ if(!u){res='pending';DIAG.reg='noauth'}
+ else{
+  const e=await att(()=>withT(DB.doc('writers/'+u.uid).set({code:EVENT_CODE,ts:Date.now()},{}),10000)); // locked-down rules: register this phone with the code (the rules only accept a code stored as text)
+  if(!e){CODE_NUM=false;res='ok'}
+  else{DIAG.reg=e.code||e.message||'error';
+   if(tr(e))res='pending';
+   else if(STALE||!(DIAG.snap.meta||DIAG.snap.match))res='pending';
+   else{ // the database is on the old rules (or the code is wrong): the same code check, done by a harmless write
+    let e3=await att(()=>withT(DB.doc('meta/main').set({build:Math.max(KNOWNB,BUILD),code:EVENT_CODE},{merge:true}),10000));
+    if(e3&&!tr(e3)&&num){const e4=await att(()=>withT(DB.doc('meta/main').set({build:Math.max(KNOWNB,BUILD),code:Number(EVENT_CODE)},{merge:true}),10000));if(!e4){CODE_NUM=true;e3=null}else e3=e4} // the old rules compared whatever type is stored
+    if(!e3)res='legacy';else{DIAG.reg2=e3.code||e3.message||'error';res=tr(e3)?'pending':'denied'}}}}
+}catch(x){DIAG.reg=(x&&(x.code||x.message))||'error';res='pending'}
+if(res=='ok'||res=='legacy'){REGS=res;setCodeOk(true);if(DENIED)DENIED=false;if(SY!='off')setSy(DIAG.snap.match||DIAG.snap.meta?'live':'connecting')}
+else if(res=='denied'){REGS='denied';setCodeOk(false);await dropUnsent();setSy('ro');DENIED=true}
+else if(force===true||(REGS!='ok'&&REGS!='legacy'))REGS='pending';
+REGBUSY=false;DIAG.regRes=res;
+if(REGAGAIN){REGAGAIN=false;setTimeout(()=>regDevice(true),0)}else if(REGS=='pending')setTimeout(()=>{if(REGS=='pending')regDevice()},DIAG.reg=='timeout'?5000:1500);
 if(REGS=='ok'||REGS=='legacy')stampBuild();
 render();pa()}
 function ensureCode(){if(VIEWER){EVENT_CODE='';return ''}try{EVENT_CODE=localStorage.getItem('rbc_code')||''}catch(e){}loadCodeOk();return EVENT_CODE}
-function changeCode(){const v=(prompt('Enter the access code (ask the commissioner). Without the right code this phone can only watch.',EVENT_CODE||'')||'').trim();
+function changeCode(){if(!canEdit()){tab='o';MS='a';LV=null;PF=null;render();scrollTo(0,0);setTimeout(()=>{const i=document.getElementById('acin');if(i)i.focus()},50);return}const v=(prompt('Enter the access code (ask the commissioner). Without the right code this phone can only watch.',EVENT_CODE||'')||'').trim();
 EVENT_CODE=v;DENIED=false;setCodeOk(false);try{localStorage.setItem('rbc_code',v)}catch(e){}setSy(DB?'connecting':'local');render();regDevice()}
 async function initDb(){
 if(PRACTICE){setSy('practice');return}
