@@ -443,7 +443,7 @@ if(!el.dataset.pt){el.dataset.pt='1';el.setAttribute('src',picAlt(s));return}
 if(el.dataset.ti!==undefined)avErr(el);else el.style.visibility='hidden'},true);
 try{document.querySelectorAll('img').forEach(i=>{if(i.complete&&i.naturalWidth===0&&i.getAttribute('src'))i.dispatchEvent(new Event('error'))})}catch(e){} // the header picture may have failed before this script ran
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const RS=[{p:['Lutz','Bryce','Tim','Nils','Bradio','Brett','Bill'],h:['18.5','12.1','12','6','6.1','27','33.4']},{p:['Guad','Justin','Belon','Mannone','Bustin','Weidaw','Fogel'],h:['6','1.2','7','19','18','45','22.7']}];
+const RS=[{p:['Lutz','Bryce','Tim','Nils','Bradio','Brett','Bill'],h:['18.5','12.1','12','6','6.1','27.3','34.6']},{p:['Guad','Justin','Belon','Mannone','Bustin','Weidaw','Fogel'],h:['6','2.3','7','19','18','45','22.7']}];
 const mk=()=>{const P=k=>Array.from({length:7},(_,i)=>'Player '+(k*7+i+1)),M=[],E=()=>Array(7).fill('');
 ['Friday','Saturday'].forEach(d=>[2,2,3].forEach(n=>M.push({d,f:'Best Ball',n,s:[null,null,null],pv:[.5,.5,1],l:[[],[]]})));
 for(let i=0;i<7;i++)M.push({d:'Sunday',f:'Singles',n:1,s:[null,null,null],pv:[1,1,2],l:[[],[]]});
@@ -471,10 +471,12 @@ if(!S.payv3){['Friday','Saturday'].forEach(d=>{if(S.pay[d]&&S.pay[d].bb)S.pay[d]
 if(S.pay.buyin==null)S.pay.buyin=200;
 S.sc=S.sc||{};S.tees=S.tees||{};S.matches.forEach(m=>{if(!m.pv){m.pv=m.d=='Sunday'?[1,1,2]:[.5,.5,1];m.s=[null,null,null]}});if(S.rules.includes('Every match is worth 1 point'))S.rules=DR;S.rules=S.rules.replace('Closest to Pin, Long Drive, Birdie Bro and My Chippy are handed out by the admin. ','').replace('King Crab, Soft Shell and Bottom Feeder','Sunshine, Gerry Bertier and Bottom Feeder').replace('Sunshine, Gerry Bertier and Bottom Feeder','Sunshine, Gerry Bertier and Alan Bosley');
 S.teams.forEach((t,i)=>{t.h=t.h||t.p.map(()=>'');t.c=t.c||t.p.map(()=>'');if(t.n==['Team Old Bay','Team Coastal'][i])t.n=['Team Lutz','Team Guad'][i]});
+const HCPFIX=[['Bill','33.4','34.6'],['Brett','27','27.3'],['Justin','1.2','2.3']]; // handicap updates: applied wherever the old built-in value is still there, so the shared event data updates once; a value someone has set since is left alone
 const NAMEFIX=[[/\bSchenk\b/gi,'Bill']]; // a player's name is what ties him to his history (scores, matches, payouts, hometown, awards): "Schenk" is Bill
 function scrubNames(x){if(typeof x==='string'){NAMEFIX.forEach(([r,to])=>{x=x.replace(r,to)});return x}if(Array.isArray(x)){for(let i=0;i<x.length;i++)x[i]=scrubNames(x[i]);return x}if(x&&typeof x==='object'){Object.keys(x).forEach(k=>{x[k]=scrubNames(x[k])});return x}return x}
 function fixNames(){delete S.bet;delete S.betsLocal;if(typeof S.rules==='string')S.rules=S.rules.replace(/(the\s+)?big\s+dog/gi,'The Alpha').replace(/(the\s+)?just\s+go\s+home/gi,'The Beta');
 if(S.teams)S.teams.forEach(t=>{t.p=t.p.map(n=>typeof n==='string'&&/^\s*Schenk\s*$/i.test(n)?'Bill':n)});
+if(S.teams)HCPFIX.forEach(([nm,from,to])=>S.teams.forEach(t=>{const i=t.p.indexOf(nm);if(i>=0&&t.h&&String(t.h[i])===from)t.h[i]=to}));
 ['rules','event'].forEach(k=>{if(typeof S[k]==='string')S[k]=scrubNames(S[k])});['awards','log','tees'].forEach(k=>{if(S[k])scrubNames(S[k])});if(S.teams)S.teams.forEach(t=>{scrubNames(t.p)})} // award renames: also fixes rules text saved earlier, on this phone and in the shared database
 function fixRoster(){S.teams.forEach((t,i)=>{if(t.p.length==7&&t.p.every(x=>/^Player \d+$/.test(x))){t.p=[...RS[i].p];t.h=[...RS[i].h]}})}
 fixRoster();fixNames();
